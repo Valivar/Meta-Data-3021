@@ -24,7 +24,7 @@
                 <ul>
                     <li class="active"><a href="#upload-section"><i class="fas fa-upload"></i> Process Invoice</a></li>
                     <li><a href="#invoices-section"><i class="fas fa-list"></i> Invoice Records</a></li>
-                    <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+                    <li><a href="#settings-section"><i class="fas fa-cog"></i> Settings</a></li>
                 </ul>
             </nav>
             <div class="user-profile">
@@ -201,6 +201,17 @@
                                         </div>
                                     </div>
 
+                                    <!-- Custom Fields Section -->
+                                    <div class="form-group">
+                                        <label class="form-label">Additional Fields</label>
+                                        <div id="custom-fields-container">
+                                            <!-- Custom fields will be added here -->
+                                        </div>
+                                        <button type="button" class="btn btn-outline" id="add-custom-field-btn">
+                                            <i class="fas fa-plus"></i> Add Field
+                                        </button>
+                                    </div>
+
                                     <div class="form-group">
                                         <label class="form-label">Invoice Items</label>
                                         <div class="drop-area" id="invoice-items-drop">
@@ -210,6 +221,28 @@
                                             <button type="button" class="add-item-btn" id="add-item-btn">
                                                 <i class="fas fa-plus"></i> Add Item
                                             </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Amount Details Section -->
+                                    <div class="form-group">
+                                        <label class="form-label">Amount Details</label>
+                                        <div class="amount-details-container">
+                                            <div class="amount-row">
+                                                <span class="amount-label">Subtotal:</span>
+                                                <span class="amount-value" id="subtotal-amount">$0.00</span>
+                                            </div>
+                                            <div class="amount-row">
+                                                <span class="amount-label">GST (18%):</span>
+                                                <span class="amount-value" id="gst-amount">$0.00</span>
+                                                <button type="button" class="btn btn-outline btn-sm" id="set-gst-btn">
+                                                    <i class="fas fa-cog"></i> Set GST
+                                                </button>
+                                            </div>
+                                            <div class="amount-row total-row">
+                                                <span class="amount-label">Grand Total:</span>
+                                                <span class="amount-value" id="grand-total-amount">$0.00</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -264,6 +297,48 @@
                         </table>
                     </div>
                 </section>
+
+                <!-- Settings Section -->
+                <section id="settings-section" class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-cog"></i> Settings</h2>
+                        <p>Configure system settings and approval workflow</p>
+                    </div>
+
+                    <div class="settings-container">
+                        <div class="settings-card">
+                            <h3><i class="fas fa-envelope"></i> Approval Settings</h3>
+                            <p>Configure email addresses for invoice approval notifications</p>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Approver Email Addresses</label>
+                                <div id="approver-emails-container">
+                                    <!-- Approver emails will be loaded here -->
+                                </div>
+                                <div class="add-approver-container">
+                                    <input type="email" id="new-approver-email" class="form-control" placeholder="Enter email address">
+                                    <button class="btn btn-primary" id="add-approver-btn">
+                                        <i class="fas fa-plus"></i> Add Approver
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-card">
+                            <h3><i class="fas fa-sliders-h"></i> System Settings</h3>
+                            <p>Configure default system preferences</p>
+                            
+                            <div class="form-group">
+                                <label for="default-gst-rate" class="form-label">Default GST Rate (%)</label>
+                                <input type="number" id="default-gst-rate" class="form-control" value="18" min="0" max="100" step="0.1">
+                            </div>
+                            
+                            <button class="btn btn-primary" id="save-settings-btn">
+                                <i class="fas fa-save"></i> Save Settings
+                            </button>
+                        </div>
+                    </div>
+                </section>
             </div>
         </div>
     </div>
@@ -294,6 +369,7 @@
                             <h4 id="invoice-number-display">Invoice #</h4>
                             <p class="invoice-date" id="invoice-date-display"></p>
                             <p class="invoice-date" id="created-at-display"></p>
+                            <div id="invoice-status-display"></div>
                         </div>
                         <div class="invoice-total">
                             <span>Total Amount</span>
@@ -317,6 +393,33 @@
                     
                     <div id="invoice-items-display">
                         <!-- Items will be loaded here -->
+                    </div>
+
+                    <!-- Amount Details Section in Modal -->
+                    <div class="amount-details-section">
+                        <h5>Amount Details</h5>
+                        <div class="amount-details-container">
+                            <div class="amount-row">
+                                <span class="amount-label">Subtotal:</span>
+                                <span class="amount-value" id="modal-subtotal-amount">$0.00</span>
+                            </div>
+                            <div class="amount-row">
+                                <span class="amount-label">GST:</span>
+                                <span class="amount-value" id="modal-gst-amount">$0.00 (18%)</span>
+                                <button type="button" class="btn btn-outline btn-sm" id="modal-set-gst-btn">
+                                    <i class="fas fa-cog"></i> Set GST
+                                </button>
+                            </div>
+                            <div class="amount-row total-row">
+                                <span class="amount-label">Grand Total:</span>
+                                <span class="amount-value" id="modal-grand-total-amount">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Custom Fields Section in Modal -->
+                    <div id="custom-fields-display">
+                        <!-- Custom fields will be loaded here -->
                     </div>
                 </div>
             </div>
@@ -350,6 +453,48 @@
         </div>
     </div>
 
+    <!-- Set GST Modal -->
+    <div id="set-gst-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Set GST Rate</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="gst-rate" class="form-label">GST Rate (%)</label>
+                    <input type="number" id="gst-rate" class="form-control" value="18" min="0" max="100" step="0.1">
+                </div>
+                <div id="gst-status" class="status-message"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline modal-close">Cancel</button>
+                <button class="btn btn-primary" id="save-gst-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Custom Field Modal -->
+    <div id="add-field-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Custom Field</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="field-name" class="form-label">Field Name *</label>
+                    <input type="text" id="field-name" class="form-control" required>
+                </div>
+                <div id="field-status" class="status-message"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline modal-close">Cancel</button>
+                <button class="btn btn-primary" id="save-field-btn">Add Field</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Loading Spinner -->
     <div id="loading-spinner" class="loading-spinner">
         <div class="spinner"></div>
@@ -370,6 +515,8 @@
         let selectPage = 1;
         let scale = 1.0;
         let selectScale = 1.0;
+        let modalCurrentPage = 1;
+        let modalScale = 1.0;
         let extractedText = [];
         let detectedFields = {};
         let allTextItems = [];
@@ -382,6 +529,7 @@
         let currentInvoiceId = null;
         let currentPdfFile = null;
         let currentInvoiceData = null;
+        let gstRate = 18; // Default GST rate
         
         // DOM elements
         const browseBtn = document.getElementById('browse-btn');
@@ -402,6 +550,12 @@
         const formStatus = document.getElementById('form-status');
         const contextMenu = document.getElementById('context-menu');
         const editFieldBtn = document.getElementById('edit-field');
+        const addCustomFieldBtn = document.getElementById('add-custom-field-btn');
+        const setGstBtn = document.getElementById('set-gst-btn');
+        const modalSetGstBtn = document.getElementById('modal-set-gst-btn');
+        const totalAmountInput = document.getElementById('total-amount');
+        const addApproverBtn = document.getElementById('add-approver-btn');
+        const saveSettingsBtn = document.getElementById('save-settings-btn');
         
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -409,6 +563,7 @@
             updateZoomDisplay();
             initializeDataTable();
             loadInvoices();
+            loadApproverEmails();
             
             // Set active section based on hash
             if (window.location.hash) {
@@ -495,11 +650,47 @@
             // Add item button
             addItemBtn.addEventListener('click', addInvoiceItem);
             
+            // Add custom field button
+            addCustomFieldBtn.addEventListener('click', function() {
+                document.getElementById('add-field-modal').style.display = 'flex';
+            });
+            
+            // Save field button
+            document.getElementById('save-field-btn').addEventListener('click', addCustomField);
+            
+            // Set GST button
+            setGstBtn.addEventListener('click', function() {
+                document.getElementById('gst-rate').value = gstRate;
+                document.getElementById('set-gst-modal').style.display = 'flex';
+            });
+            
+            // Modal Set GST button
+            modalSetGstBtn.addEventListener('click', function() {
+                document.getElementById('gst-rate').value = gstRate;
+                document.getElementById('set-gst-modal').style.display = 'flex';
+            });
+            
+            // Save GST button
+            document.getElementById('save-gst-btn').addEventListener('click', function() {
+                const newRate = parseFloat(document.getElementById('gst-rate').value);
+                if (isNaN(newRate)) {
+                    showStatus('Please enter a valid number', 'error', document.getElementById('gst-status'));
+                    return;
+                }
+                
+                gstRate = newRate;
+                updateAmountDetails();
+                document.getElementById('set-gst-modal').style.display = 'none';
+            });
+            
             // Form submission
             document.getElementById('invoice-form').addEventListener('submit', function(e) {
                 e.preventDefault();
                 saveInvoice();
             });
+            
+            // Total amount input change handler
+            totalAmountInput.addEventListener('change', updateAmountDetails);
             
             // Setup drag and drop for form fields
             document.querySelectorAll('.drop-area').forEach(dropArea => {
@@ -531,6 +722,11 @@
                                 setTimeout(() => {
                                     this.classList.remove('field-match');
                                 }, 1000);
+                                
+                                // If this is the total amount field, update amount details
+                                if (fieldId === 'total-amount') {
+                                    updateAmountDetails();
+                                }
                             }
                         } else if (this.id === 'invoice-items-drop') {
                             // Handle drop on invoice items container
@@ -685,6 +881,12 @@
                     document.getElementById(`${this.dataset.tab}-tab`).classList.add('active');
                 });
             });
+
+            // Add approver email
+            addApproverBtn.addEventListener('click', addApproverEmail);
+
+            // Save settings
+            saveSettingsBtn.addEventListener('click', saveSettings);
         }
 
         // Show context menu
@@ -710,7 +912,8 @@
             // Update page title
             const titleMap = {
                 '#upload-section': 'Process Invoice',
-                '#invoices-section': 'Invoice Records'
+                '#invoices-section': 'Invoice Records',
+                '#settings-section': 'System Settings'
             };
             document.getElementById('page-title').textContent = titleMap[sectionId] || 'Invoice Processor';
             
@@ -762,14 +965,28 @@
                         }
                     },
                     { 
-                        data: 'created_at',
-                        render: function() {
-                            return '<span class="status-badge status-processed">Processed</span>';
+                        data: 'status',
+                        render: function(data, type, row) {
+                            let statusClass = 'status-pending';
+                            let statusText = 'Pending';
+                            
+                            if (data === 'approved') {
+                                statusClass = 'status-approved';
+                                statusText = 'Approved';
+                            } else if (data === 'rejected') {
+                                statusClass = 'status-rejected';
+                                statusText = 'Rejected';
+                            } else if (data === 'on_hold') {
+                                statusClass = 'status-hold';
+                                statusText = 'On Hold';
+                            }
+                            
+                            return `<span class="status-badge ${statusClass}">${statusText}</span>`;
                         }
                     },
                     {
                         data: 'id',
-                        render: function(data) {
+                        render: function(data, type, row) {
                             return `
                                 <div class="action-buttons">
                                     <button class="btn-action view-invoice" data-id="${data}">
@@ -853,16 +1070,20 @@
         function loadDocumentForModal(documentUrl) {
             showLoading(true);
             
-            // For demonstration, we'll use the same PDF.js viewer
-            // In a real app, you would fetch the document from the server
             fetch(documentUrl)
-                .then(response => response.arrayBuffer())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch document');
+                    }
+                    return response.arrayBuffer();
+                })
                 .then(data => {
                     return pdfjsLib.getDocument(data).promise;
                 })
                 .then(pdf => {
                     currentPdfFile = pdf;
                     modalCurrentPage = 1;
+                    modalScale = 1.0;
                     renderModalPage(modalCurrentPage);
                     updateModalPageInfo();
                 })
@@ -894,6 +1115,36 @@
                 moment(currentInvoiceData.invoice_date).format('MMMM D, YYYY') : 'N/A';
             document.getElementById('created-at-display').textContent = currentInvoiceData.created_at ? 
                 `Created: ${moment(currentInvoiceData.created_at).format('MMMM D, YYYY h:mm A')}` : 'N/A';
+            
+            // Status display
+            const statusDisplay = document.getElementById('invoice-status-display');
+            statusDisplay.innerHTML = '';
+            
+            let statusClass = 'status-pending';
+            let statusText = 'Pending Approval';
+            
+            if (currentInvoiceData.status === 'approved') {
+                statusClass = 'status-approved';
+                statusText = 'Approved';
+            } else if (currentInvoiceData.status === 'rejected') {
+                statusClass = 'status-rejected';
+                statusText = 'Rejected';
+            } else if (currentInvoiceData.status === 'on_hold') {
+                statusClass = 'status-hold';
+                statusText = 'On Hold';
+            }
+            
+            const statusBadge = document.createElement('span');
+            statusBadge.className = `status-badge ${statusClass}`;
+            statusBadge.textContent = statusText;
+            statusDisplay.appendChild(statusBadge);
+            
+            if (currentInvoiceData.status_notes) {
+                const notes = document.createElement('p');
+                notes.className = 'status-notes';
+                notes.textContent = `Notes: ${currentInvoiceData.status_notes}`;
+                statusDisplay.appendChild(notes);
+            }
             
             // Vendor info
             document.getElementById('vendor-info-display').innerHTML = currentInvoiceData.vendor_info ? 
@@ -935,23 +1186,83 @@
                 `;
                 itemsContainer.innerHTML = itemsHtml;
             }
+
+            // Amount details
+            const totalAmount = parseCurrency(currentInvoiceData.total_amount);
+            updateModalAmountDetails(totalAmount);
+
+            // Custom fields
+            const customFieldsContainer = document.getElementById('custom-fields-display');
+            customFieldsContainer.innerHTML = '';
+            
+            // Check if there are any custom fields in the data
+            if (currentInvoiceData.custom_fields) {
+                try {
+                    const customFields = JSON.parse(currentInvoiceData.custom_fields);
+                    if (customFields && Object.keys(customFields).length > 0) {
+                        const customFieldsHtml = `
+                            <h5>Additional Information</h5>
+                            <div class="custom-fields-container">
+                                ${Object.entries(customFields).map(([name, value]) => `
+                                    <div class="custom-field">
+                                        <span class="custom-field-name">${name}:</span>
+                                        <span class="custom-field-value">${value}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                        customFieldsContainer.innerHTML = customFieldsHtml;
+                    }
+                } catch (e) {
+                    console.error('Error parsing custom fields:', e);
+                }
+            }
+        }
+
+        // Update amount details in the modal
+        function updateModalAmountDetails(totalAmount) {
+            if (isNaN(totalAmount)) {
+                document.getElementById('modal-subtotal-amount').textContent = '$0.00';
+                document.getElementById('modal-gst-amount').textContent = '$0.00 (0%)';
+                document.getElementById('modal-grand-total-amount').textContent = '$0.00';
+                return;
+            }
+
+            const subtotal = totalAmount / (1+ (gstRate/100));
+            const gstAmount = totalAmount - subtotal;
+
+            document.getElementById('modal-subtotal-amount').textContent = formatCurrency(subtotal);
+            document.getElementById('modal-gst-amount').textContent = `${formatCurrency(gstAmount)} (${gstRate}%)`;
+            document.getElementById('modal-grand-total-amount').textContent = formatCurrency(totalAmount);
         }
 
         // Format currency while preserving the original format
         function formatCurrency(value) {
-            // If it's already formatted (contains letters or symbols), return as is
-            if (/[a-zA-Z$€£¥₹]/.test(value)) {
-                return value;
+            if (typeof value === 'string') {
+                // If it's already formatted (contains letters or symbols), return as is
+                if (/[a-zA-Z$€£¥₹]/.test(value)) {
+                    return value;
+                }
+                
+                // Otherwise, try to parse as number
+                value = parseFloat(value.replace(/[^0-9.-]/g, ''));
+                if (isNaN(value)) return '$0.00';
             }
-            
-            // Otherwise, format as USD
-            const num = parseFloat(value);
-            if (isNaN(num)) return value;
             
             return new Intl.NumberFormat('en-US', {
                 style: 'currency',
                 currency: 'USD'
-            }).format(num);
+            }).format(value);
+        }
+
+        // Parse currency string to number
+        function parseCurrency(value) {
+            if (!value) return 0;
+            if (typeof value === 'number') return value;
+            
+            // Remove all non-numeric characters except decimal point
+            const numericValue = parseFloat(value.replace(/[^0-9.-]/g, ''));
+            return isNaN(numericValue) ? 0 : numericValue;
         }
         
         // Delete invoice
@@ -989,6 +1300,8 @@
         function closeModal() {
             document.getElementById('invoice-detail-modal').style.display = 'none';
             document.getElementById('edit-total-modal').style.display = 'none';
+            document.getElementById('set-gst-modal').style.display = 'none';
+            document.getElementById('add-field-modal').style.display = 'none';
         }
         
         // Handle file selection
@@ -1030,6 +1343,7 @@
                     document.getElementById('pdf-select-viewer').innerHTML = '';
                     document.getElementById('fields-content').innerHTML = '';
                     document.getElementById('invoice-items-container').innerHTML = '';
+                    document.getElementById('custom-fields-container').innerHTML = '';
                     extractedTextContent.innerHTML = '';
                     
                     // Render the pages
@@ -1225,8 +1539,8 @@
             const fieldPatterns = {
                 'invoice-number': /(Invoice\s*Number|Order\s*ID|Invoice\s*Details|Invoice\s*No\.?)\s*[:#]?\s*([A-Z0-9\-\/]+)/i,
                 'po-number': /(PO\s*Number|Purchase\s*Order|Order\s*No\.?)\s*[:#]?\s*([A-Z0-9-]+)/i,
-                'invoice-date': /(Invoice\s*Date|Date\s*of\s*Invoice)\s*[:]?\s*((\d{1,2}[\/\-\s](\d{1,2}|[A-Za-z]+)[\/\-\s]\d{2,4})|([A-Za-z]+[\/\-\s]\d{1,2}[\/\-\s]\d{2,4}))/i,
-                'total-amount': /(Total\s*Amount|Amount\s*Due|Grand\s*Total|Toatal)\s*[:]?\s*([$\u20AC\u00A3¥₹]?\s*[\d,]+\.?\d*)/i,
+                'invoice-date': /(Invoice\s*Date|Date\s*of\s*Invoice|Date)\s*[:]?\s*((\d{1,2}[\/\-\s](\d{1,2}|[A-Za-z]+)[\/\-\s]\d{2,4})|([A-Za-z]+[\/\-\s]\d{1,2}[\/\-\s]\d{2,4})|(\d{1,2}\s+[A-Za-z]+\s+\d{2,4}))/i,
+                'total-amount': /(Total\s*Amount|Amount\s*Due|Grand\s*Total|Total)\s*[:]?\s*([$\u20AC\u00A3¥₹]?\s*[\d,]+\.?\d*)/i,
                 'vendor-info': /From:\s*([\s\S]*?)(?=To:)/i
             };
 
@@ -1249,6 +1563,21 @@
                             rawText: paymentFooterMatch[0]
                         };
                     }
+                }
+            }
+
+            // Enhanced invoice date detection - standalone if not found with label
+            if (!detectedFields['invoice-date']) {
+                // Comprehensive date pattern matching
+                const datePattern = /(\d{1,2}[\/\-\s](\d{1,2}|[A-Za-z]+)[\/\-\s]\d{2,4})|([A-Za-z]+[\/\-\s]\d{1,2}[\/\-\s]\d{2,4})|(\d{1,2}\s+[A-Za-z]+\s+\d{2,4})/i;
+                const dateMatch = text.match(datePattern);
+                
+                if (dateMatch) {
+                    detectedFields['invoice-date'] = {
+                        value: dateMatch[0].trim(),
+                        confidence: 'medium',
+                        rawText: dateMatch[0]
+                    };
                 }
             }
 
@@ -1310,6 +1639,11 @@
                         dropArea.classList.remove('field-match');
                     }, 2000);
                 }
+            }
+
+            // Update amount details if total amount was detected
+            if (detectedFields['total-amount']) {
+                updateAmountDetails();
             }
         }
         
@@ -1410,20 +1744,118 @@
             
             container.appendChild(itemDiv);
         }
+
+        // Add a custom field
+        function addCustomField() {
+            const fieldName = document.getElementById('field-name').value.trim();
+            if (!fieldName) {
+                showStatus('Field name is required', 'error', document.getElementById('field-status'));
+                return;
+            }
+
+            const container = document.getElementById('custom-fields-container');
+            const fieldId = `custom-${fieldName.toLowerCase().replace(/\s+/g, '-')}`;
+            
+            const fieldDiv = document.createElement('div');
+            fieldDiv.className = 'form-group';
+            fieldDiv.innerHTML = `
+                <label for="${fieldId}" class="form-label">${fieldName}</label>
+                <div class="drop-area" id="${fieldId}-drop" data-field="${fieldId}">
+                    <input type="text" id="${fieldId}" name="${fieldId}" class="form-control" 
+                           placeholder="Enter value" autocomplete="off" readonly>
+                    <span class="edit-hint">Right-click to edit</span>
+                </div>
+            `;
+
+            // Add right-click context menu to the input
+            const input = fieldDiv.querySelector('input');
+            input.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                showContextMenu(e, this);
+            });
+
+            container.appendChild(fieldDiv);
+            
+            // Close modal and reset field name
+            document.getElementById('field-name').value = '';
+            document.getElementById('add-field-modal').style.display = 'none';
+        }
         
         // Normalize date format for input[type=date]
         function normalizeDate(dateStr) {
-            // Simple date format conversion
-            const parts = dateStr.split(/[\/\-]/);
+            if (!dateStr) return '';
+            
+            // Try to parse with moment.js which handles many formats
+            const formats = [
+                'DD/MM/YYYY', 'DD-MM-YYYY', 'DD.MM.YYYY',
+                'MM/DD/YYYY', 'MM-DD-YYYY', 'MM.DD.YYYY',
+                'YYYY/MM/DD', 'YYYY-MM-DD', 'YYYY.MM.DD',
+                'DD MMM YYYY', 'DD MMMM YYYY', 'MMM DD, YYYY',
+                'MMMM DD, YYYY', 'DD-MMM-YYYY', 'DD/MMM/YYYY'
+            ];
+            
+            const date = moment(dateStr, formats, true);
+            if (date.isValid()) {
+                return date.format('YYYY-MM-DD');
+            }
+            
+            // Fallback to simple parsing if moment fails
+            const parts = dateStr.split(/[\/\-\s,]/).filter(part => part.trim() !== '');
             if (parts.length === 3) {
-                if (parts[0].length === 4) { // YYYY-MM-DD
-                    return dateStr;
-                } else { // MM/DD/YYYY or DD-MM-YYYY
-                    if (parts[2].length === 2) parts[2] = '20' + parts[2];
-                    return `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                let day, month, year;
+                
+                // Try to parse month name
+                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                                    'July', 'August', 'September', 'October', 'November', 'December'];
+                const shortMonthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                
+                const monthIndex = monthNames.findIndex(m => dateStr.includes(m)) + 1 || 
+                                  shortMonthNames.findIndex(m => dateStr.includes(m)) + 1;
+                
+                if (monthIndex > 0) {
+                    // Format with month name (e.g., 12 April 2023 or April 12, 2023)
+                    const monthStr = monthIndex.toString().padStart(2, '0');
+                    
+                    if (dateStr.includes(',')) {
+                        // Format like "April 12, 2023"
+                        day = parts[1].padStart(2, '0');
+                        year = parts[2];
+                    } else {
+                        // Format like "12 April 2023"
+                        day = parts[0].padStart(2, '0');
+                        year = parts[2];
+                    }
+                    
+                    return `${year}-${monthStr}-${day}`;
+                } else {
+                    // Numeric date formats
+                    if (parts[0].length === 4) {
+                        // YYYY-MM-DD format
+                        return dateStr;
+                    } else if (parts[2].length === 2) {
+                        // DD-MM-YY format
+                        parts[2] = '20' + parts[2];
+                    }
+                    
+                    // Assume DD-MM-YYYY or MM-DD-YYYY based on which makes sense
+                    const dayPart = parseInt(parts[0]);
+                    const monthPart = parseInt(parts[1]);
+                    
+                    if (dayPart > 12) {
+                        // Clearly DD-MM-YYYY (e.g., 25-12-2023)
+                        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                    } else if (monthPart > 12) {
+                        // Clearly MM-DD-YYYY (though unusual)
+                        return `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                    } else {
+                        // Ambiguous, default to MM-DD-YYYY (US format)
+                        return `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                    }
                 }
             }
-            return dateStr;
+            
+            return dateStr; // Return as-is if we can't parse it
         }
         
         // Display detected fields
@@ -1467,6 +1899,25 @@
             }
             
             fieldsContent.appendChild(fieldsList);
+        }
+
+        // Update amount details based on total amount
+        function updateAmountDetails() {
+            const totalAmount = parseCurrency(document.getElementById('total-amount').value);
+            
+            if (isNaN(totalAmount)) {
+                document.getElementById('subtotal-amount').textContent = '$0.00';
+                document.getElementById('gst-amount').textContent = '$0.00';
+                document.getElementById('grand-total-amount').textContent = '$0.00';
+                return;
+            }
+
+            const subtotal = totalAmount / (1+ (gstRate/100));
+            const gstAmount = totalAmount - subtotal;
+
+            document.getElementById('subtotal-amount').textContent = formatCurrency(subtotal);
+            document.getElementById('gst-amount').textContent = formatCurrency(gstAmount);
+            document.getElementById('grand-total-amount').textContent = formatCurrency(totalAmount);
         }
         
         // Zoom functions
@@ -1606,7 +2057,8 @@
                 paymentTerms: document.getElementById('payment-terms').value,
                 totalAmount: totalAmount,
                 vendorInfo: document.getElementById('vendor-info').value,
-                items: []
+                items: [],
+                customFields: {}
             };
             
             // Collect invoice items
@@ -1618,6 +2070,20 @@
                     total: item.querySelector('.item-total').value
                 });
             });
+
+            // Collect custom fields
+            document.querySelectorAll('#custom-fields-container .form-group').forEach(field => {
+                const label = field.querySelector('label');
+                const input = field.querySelector('input');
+                if (label && input) {
+                    formData.customFields[label.textContent] = input.value;
+                }
+            });
+
+            // Add amount details
+            formData.subtotal = document.getElementById('subtotal-amount').textContent;
+            formData.gstAmount = document.getElementById('gst-amount').textContent;
+            formData.gstRate = gstRate;
             
             // Get document data if available
             if (pdfUpload.files.length > 0) {
@@ -1657,7 +2123,7 @@
             })
             .then(data => {
                 if (data.success) {
-                    showStatus('Invoice saved successfully!', 'success', formStatus);
+                    showStatus('Invoice saved successfully and sent for approval!', 'success', formStatus);
                     resetForm();
                     loadInvoices();
                     showSection('#invoices-section');
@@ -1679,8 +2145,14 @@
         function resetForm() {
             document.getElementById('invoice-form').reset();
             document.getElementById('invoice-items-container').innerHTML = '';
+            document.getElementById('custom-fields-container').innerHTML = '';
             document.getElementById('current-filename').textContent = 'None';
             documentInfo.style.display = 'none';
+            
+            // Reset amount details
+            document.getElementById('subtotal-amount').textContent = '$0.00';
+            document.getElementById('gst-amount').textContent = '$0.00';
+            document.getElementById('grand-total-amount').textContent = '$0.00';
             
             // Clear PDF viewer
             if (pdfDocument) {
@@ -1716,6 +2188,114 @@
         function showLoading(show) {
             const spinner = document.getElementById('loading-spinner');
             spinner.style.display = show ? 'flex' : 'none';
+        }
+
+        // Load approver emails
+        function loadApproverEmails() {
+            fetch('/api/settings?setting_type=approver_email')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const container = document.getElementById('approver-emails-container');
+                        container.innerHTML = '';
+                        
+                        data.data.forEach(setting => {
+                            const emailDiv = document.createElement('div');
+                            emailDiv.className = 'approver-email-item';
+                            emailDiv.innerHTML = `
+                                <span>${setting.setting_value}</span>
+                                <button class="btn-action delete-approver" data-id="${setting.id}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            `;
+                            container.appendChild(emailDiv);
+                        });
+                        
+                        // Add delete event listeners
+                        document.querySelectorAll('.delete-approver').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const settingId = this.getAttribute('data-id');
+                                deleteApproverEmail(settingId);
+                            });
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading approver emails:', error);
+                });
+        }
+
+        // Add approver email
+        function addApproverEmail() {
+            const emailInput = document.getElementById('new-approver-email');
+            const email = emailInput.value.trim();
+            
+            if (!email || !email.includes('@')) {
+                alert('Please enter a valid email address');
+                return;
+            }
+            
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    setting_type: 'approver_email',
+                    setting_value: email
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    emailInput.value = '';
+                    loadApproverEmails();
+                } else {
+                    alert('Failed to add approver: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error adding approver:', error);
+                alert('Failed to add approver');
+            });
+        }
+
+        // Delete approver email
+        function deleteApproverEmail(settingId) {
+            if (!confirm('Are you sure you want to remove this approver?')) {
+                return;
+            }
+            
+            fetch(`/api/settings/${settingId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadApproverEmails();
+                } else {
+                    alert('Failed to remove approver: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error removing approver:', error);
+                alert('Failed to remove approver');
+            });
+        }
+
+        // Save settings
+        function saveSettings() {
+            const gstRate = parseFloat(document.getElementById('default-gst-rate').value);
+            
+            if (isNaN(gstRate) || gstRate < 0 || gstRate > 100) {
+                alert('Please enter a valid GST rate between 0 and 100');
+                return;
+            }
+            
+            // In a real app, you would save this to the database
+            // For now, we'll just update the global variable
+            gstRate = gstRate;
+            alert('Settings saved successfully');
         }
     </script>
 </body>
