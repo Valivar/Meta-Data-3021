@@ -11,6 +11,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="dashboard.js"></script>
+    <script src="scripts/utils.js"></script>
+    <script src="record.js"></script>
+    <script src="vendor-master.js"></script>
+    <script src="user.js"></script>
 </head>
 <body>
     <div class="dashboard-container">
@@ -18,12 +24,21 @@
         <div class="sidebar">
             <div class="logo">
                 <i class="fas fa-file-invoice"></i>
-                <span>InvoicePro</span>
+                <span>ArkDocs</span>
             </div>
             <nav>
                 <ul>
-                    <li class="active"><a href="#upload-section"><i class="fas fa-upload"></i> Process Invoice</a></li>
+                    <li class="active"><a href="#dashboard-section"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                    <li class="dropdown">
+                        <a href="#"><i class="fas fa-upload"></i> Process Invoice <i class="fas fa-caret-down"></i></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="#invoice-section" class="process-option" data-type="Invoice">Invoice</a></li>
+                            <li><a href="#po-section" class="process-option" data-type="PO">PO</a></li>
+                        </ul>
+                    </li>
                     <li><a href="#invoices-section"><i class="fas fa-list"></i> Invoice Records</a></li>
+                    <li><a href="#user-management-section"><i class="fas fa-user-shield"></i> User Management</a></li>
+                    <li><a href="#vendor-master-section"><i class="fas fa-users"></i> Vendor Master</a></li>
                     <li><a href="#settings-section"><i class="fas fa-cog"></i> Settings</a></li>
                 </ul>
             </nav>
@@ -32,9 +47,12 @@
                     <i class="fas fa-user"></i>
                 </div>
                 <div class="user-info">
-                    <span class="username">Admin User</span>
-                    <span class="role">Administrator</span>
+                    <span class="username">Loading...</span>
+                    <span class="role">Loading...</span>
                 </div>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
             </div>
         </div>
 
@@ -52,11 +70,11 @@
             </header>
 
             <div class="content-wrapper">
-                <!-- Upload/Process Section -->
-                <section id="upload-section" class="content-section active">
+                <!-- Invoice Section -->
+                <section id="invoice-section" class="content-section">
                     <div class="section-header">
-                        <h2><i class="fas fa-file-import"></i> Process New Invoice</h2>
-                        <p>Upload a PDF invoice to extract and process data</p>
+                        <h2><i class="fas fa-file-invoice"></i> Process Invoice</h2>
+                        <p>Upload an invoice PDF to extract and process data</p>
                     </div>
 
                     <div class="upload-area" id="drop-zone">
@@ -72,6 +90,19 @@
 
                     <div id="document-info" class="document-info">
                         <strong>Current Document:</strong> <span id="current-filename">None</span>
+                    </div>
+
+                    <!-- File Attachments Section -->
+                    <div class="form-group">
+                        <label class="form-label">File Attachments *</label>
+                        <div id="file-attachments-container">
+                            <input type="file" id="file-attachments" multiple accept="application/pdf, image/jpeg, image/png" style="display: none;">
+                            <button class="btn btn-outline" id="add-attachment-btn">
+                                <i class="fas fa-paperclip"></i> Add Attachment
+                            </button>
+                            <div id="attachments-list"></div>
+                        </div>
+                        <p class="info-text">Add supporting documents (PDF, JPG, PNG). At least one attachment is required.</p>
                     </div>
 
                     <div class="processing-container">
@@ -143,6 +174,27 @@
                             </div>
                             <form id="invoice-form">
                                 <div id="form-fields-container">
+                                    <div class="form-group">
+                                        <label class="form-label">Approval Workflow</label>
+                                        <div class="radio-group">
+                                            <label class="radio-container">
+                                                <input type="radio" name="approval-type" value="hierarchy" checked>
+                                                <span class="radio-checkmark"></span>
+                                                <span class="radio-label">Hierarchical (3 levels)</span>
+                                            </label>
+                                            <label class="radio-container">
+                                                <input type="radio" name="approval-type" value="department">
+                                                <span class="radio-checkmark"></span>
+                                                <span class="radio-label">Department Approval</span>
+                                            </label>
+                                            <label class="radio-container">
+                                                <input type="radio" name="approval-type" value="single">
+                                                <span class="radio-checkmark"></span>
+                                                <span class="radio-label">Single Approver</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
                                     <div class="form-group">
                                         <label for="invoice-number" class="form-label">Invoice Number *</label>
                                         <div class="drop-area" id="invoice-number-drop" data-field="invoice-number">
@@ -233,6 +285,14 @@
                                                 <span class="amount-value" id="subtotal-amount">$0.00</span>
                                             </div>
                                             <div class="amount-row">
+                                                <span class="amount-label">CGST (9%):</span>
+                                                <span class="amount-value" id="cgst-amount">$0.00</span>
+                                            </div>
+                                            <div class="amount-row">
+                                                <span class="amount-label">SGST (9%):</span>
+                                                <span class="amount-value" id="sgst-amount">$0.00</span>
+                                            </div>
+                                            <div class="amount-row">
                                                 <span class="amount-label">GST (18%):</span>
                                                 <span class="amount-value" id="gst-amount">$0.00</span>
                                                 <button type="button" class="btn btn-outline btn-sm" id="set-gst-btn">
@@ -255,6 +315,263 @@
                                 </div>
                             </form>
                         </div>
+                    </div>
+                </section>
+
+                <!-- PO Section -->
+                <section id="po-section" class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-file-purchase"></i> Process PO</h2>
+                        <p>Upload a purchase order PDF to extract and process data</p>
+                    </div>
+
+                    <div class="upload-area" id="po-drop-zone">
+                        <div class="upload-content">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <h3>Upload PO PDF</h3>
+                            <p>Drag & drop your PO file here or click to browse</p>
+                            <input type="file" id="po-pdf-upload" accept="application/pdf" style="display: none;">
+                            <button class="btn btn-outline" id="po-browse-btn">Select File</button>
+                        </div>
+                        <div id="po-upload-status" class="status-message"></div>
+                    </div>
+
+                    <div id="po-document-info" class="document-info">
+                        <strong>Current Document:</strong> <span id="po-current-filename">None</span>
+                    </div>
+
+                    <div class="processing-container">
+                        <div class="document-viewer-container">
+                            <div class="tab-container">
+                                <div class="tab active" data-tab="po-viewer">Document Viewer</div>
+                                <div class="tab" data-tab="po-select">Text Selection</div>
+                                <div class="tab" data-tab="po-extracted">Extracted Text</div>
+                                <div class="tab" data-tab="po-fields">Detected Fields</div>
+                            </div>
+
+                            <div class="tab-content active" id="po-viewer-tab">
+                                <div id="po-pdf-container">
+                                    <div class="zoom-controls">
+                                        <button class="zoom-btn" id="po-zoom-in"><i class="fas fa-search-plus"></i></button>
+                                        <button class="zoom-btn" id="po-zoom-out"><i class="fas fa-search-minus"></i></button>
+                                        <span id="po-zoom-level">100%</span>
+                                    </div>
+                                    <div id="po-pdf-viewer"></div>
+                                </div>
+                                <div class="page-controls">
+                                    <button class="page-btn" id="po-prev-page"><i class="fas fa-chevron-left"></i> Previous</button>
+                                    <span id="po-page-info">Page 1 of 1</span>
+                                    <button class="page-btn" id="po-next-page">Next <i class="fas fa-chevron-right"></i></button>
+                                </div>
+                            </div>
+
+                            <div class="tab-content" id="po-select-tab">
+                                <div id="po-pdf-select-container">
+                                    <div class="zoom-controls">
+                                        <button class="zoom-btn" id="po-select-zoom-in"><i class="fas fa-search-plus"></i></button>
+                                        <button class="zoom-btn" id="po-select-zoom-out"><i class="fas fa-search-minus"></i></button>
+                                        <span id="po-select-zoom-level">100%</span>
+                                    </div>
+                                    <div id="po-pdf-select-viewer"></div>
+                                </div>
+                                <div class="page-controls">
+                                    <button class="page-btn" id="po-select-prev-page"><i class="fas fa-chevron-left"></i> Previous</button>
+                                    <span id="po-select-page-info">Page 1 of 1</span>
+                                    <button class="page-btn" id="po-select-next-page">Next <i class="fas fa-chevron-right"></i></button>
+                                </div>
+                                <div class="info-text">
+                                    <p>Select text from the document and drag to form fields</p>
+                                </div>
+                            </div>
+
+                            <div class="tab-content" id="po-fields-tab">
+                                <div class="text-content" id="po-fields-content">
+                                    <p>Upload a document to see detected fields</p>
+                                </div>
+                            </div>
+
+                            <div class="tab-content" id="po-extracted-tab">
+                                <div class="extracted-text-container">
+                                    <div class="extracted-text-content" id="po-extracted-text-content">
+                                        <p>Upload a document to see extracted text</p>
+                                    </div>
+                                </div>
+                                <div class="info-text">
+                                    <p>Click and drag any text to form fields</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <div class="form-header">
+                                <h3><i class="fas fa-file-alt"></i> PO Details</h3>
+                                <p>Review and edit extracted information</p>
+                            </div>
+                            <form id="po-form">
+                                <div id="po-form-fields-container">
+                                    <div class="form-group">
+                                        <label class="form-label">Approval Workflow</label>
+                                        <div class="radio-group">
+                                            <label class="radio-container">
+                                                <input type="radio" name="po-approval-type" value="hierarchy" checked>
+                                                <span class="radio-checkmark"></span>
+                                                <span class="radio-label">Hierarchical (3 levels)</span>
+                                            </label>
+                                            <label class="radio-container">
+                                                <input type="radio" name="po-approval-type" value="single">
+                                                <span class="radio-checkmark"></span>
+                                                <span class="radio-label">Single Approver</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="po-po-number" class="form-label">PO Number *</label>
+                                        <div class="drop-area" id="po-po-number-drop" data-field="po-po-number">
+                                            <input type="text" id="po-po-number" name="po-number" class="form-control" 
+                                                   placeholder="Will auto-fill from document" autocomplete="off" readonly required>
+                                            <span class="edit-hint">Right-click to edit</span>
+                                        </div>
+                                        <p class="info-text">Look for "PO Number:" in the document</p>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="po-po-date" class="form-label">PO Date</label>
+                                        <div class="drop-area" id="po-po-date-drop" data-field="po-po-date">
+                                            <input type="date" id="po-po-date" name="po-date" class="form-control" readonly>
+                                            <span class="edit-hint">Right-click to edit</span>
+                                        </div>
+                                        <p class="info-text">Look for "PO Date:" in the document</p>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="po-payment-terms" class="form-label">Payment Terms</label>
+                                        <div class="drop-area" id="po-payment-terms-drop" data-field="po-payment-terms">
+                                            <input type="text" id="po-payment-terms" name="payment-terms" class="form-control" 
+                                                   placeholder="Will auto-fill from document" autocomplete="off" readonly>
+                                            <span class="edit-hint">Right-click to edit</span>
+                                        </div>
+                                        <p class="info-text">Look for "Payment Terms:" in the document</p>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="po-total-amount" class="form-label">Total Amount *</label>
+                                        <div class="drop-area" id="po-total-amount-drop" data-field="po-total-amount">
+                                            <input type="text" id="po-total-amount" name="total-amount" class="form-control" 
+                                                   placeholder="Will auto-fill from document" autocomplete="off" readonly required>
+                                            <span class="edit-hint">Right-click to edit</span>
+                                        </div>
+                                        <p class="info-text">Look for "Total Amount:" in the document</p>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Vendor Information</label>
+                                        <div class="drop-area" id="po-vendor-info-drop" data-field="po-vendor-info">
+                                            <textarea id="po-vendor-info" name="vendor-info" class="form-control" rows="3" 
+                                                      placeholder="Vendor details will auto-fill" autocomplete="off" readonly></textarea>
+                                            <span class="edit-hint">Right-click to edit</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Custom Fields Section -->
+                                    <div class="form-group">
+                                        <label class="form-label">Additional Fields</label>
+                                        <div id="po-custom-fields-container">
+                                            <!-- Custom fields will be added here -->
+                                        </div>
+                                        <button type="button" class="btn btn-outline" id="po-add-custom-field-btn">
+                                            <i class="fas fa-plus"></i> Add Field
+                                        </button>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">PO Items</label>
+                                        <div class="drop-area" id="po-items-drop">
+                                            <div class="invoice-items-container" id="po-items-container">
+                                                <!-- Items will be added here dynamically -->
+                                            </div>
+                                            <button type="button" class="add-item-btn" id="po-add-item-btn">
+                                                <i class="fas fa-plus"></i> Add Item
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Amount Details Section -->
+                                    <div class="form-group">
+                                        <label class="form-label">Amount Details</label>
+                                        <div class="amount-details-container">
+                                            <div class="amount-row">
+                                                <span class="amount-label">Subtotal:</span>
+                                                <span class="amount-value" id="po-subtotal-amount">$0.00</span>
+                                            </div>
+                                            <div class="amount-row">
+                                                <span class="amount-label">CGST (9%):</span>
+                                                <span class="amount-value" id="po-cgst-amount">$0.00</span>
+                                            </div>
+                                            <div class="amount-row">
+                                                <span class="amount-label">SGST (9%):</span>
+                                                <span class="amount-value" id="po-sgst-amount">$0.00</span>
+                                            </div>
+                                            <div class="amount-row">
+                                                <span class="amount-label">GST (18%):</span>
+                                                <span class="amount-value" id="po-gst-amount">$0.00</span>
+                                                <button type="button" class="btn btn-outline btn-sm" id="po-set-gst-btn">
+                                                    <i class="fas fa-cog"></i> Set GST
+                                                </button>
+                                            </div>
+                                            <div class="amount-row total-row">
+                                                <span class="amount-label">Grand Total:</span>
+                                                <span class="amount-value" id="po-grand-total-amount">$0.00</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-footer">
+                                    <button type="submit" class="btn btn-primary btn-block" id="po-save-btn">
+                                        <i class="fas fa-save"></i> Save PO
+                                    </button>
+                                    <div id="po-form-status" class="status-message"></div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+
+                <section id="user-management-section" class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-user-shield"></i> User Management</h2>
+                        <p>Manage all system users and their permissions</p>
+                    </div>
+                
+                    <div class="table-controls">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="user-search" placeholder="Search users...">
+                        </div>
+                        <div class="table-actions">
+                            <button class="btn btn-primary" id="add-user-btn">
+                                <i class="fas fa-plus"></i> Add User
+                            </button>
+                        </div>
+                    </div>
+                
+                    <div class="table-responsive">
+                        <table id="users-table" class="display" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Active</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data will be loaded from server -->
+                            </tbody>
+                        </table>
                     </div>
                 </section>
 
@@ -281,11 +598,12 @@
                         <table id="invoices-table" class="display" style="width:100%">
                             <thead>
                                 <tr>
-                                    <th>Invoice #</th>
+                                    <th>Document #</th>
                                     <th>PO #</th>
                                     <th>Date</th>
                                     <th>Created Time</th>
                                     <th>Vendor</th>
+                                    <th>Document Type</th>
                                     <th>Total</th>
                                     <th>Status</th>
                                     <th>Actions</th>
@@ -297,51 +615,633 @@
                         </table>
                     </div>
                 </section>
+            
+                <!-- Dashboard Section -->
+                <section id="dashboard-section" class="content-section active">
+                  <div class="section-header">
+                    <h2><i class="fas fa-tachometer-alt"></i> Dashboard</h2>
+                    <p>Overview of invoice processing status</p>
+                  </div>
+                  
+                  <div class="dashboard-content">
+                    <!-- Overview Cards -->
+                    <div class="dashboard-overview">
+                      <div class="overview-card total" id="total-card">
+                        <div class="card-icon">
+                          <i class="fas fa-file-invoice"></i>
+                        </div>
+                        <div class="card-content">
+                          <h3>Total Processed</h3>
+                          <div class="card-value" id="total-count">0</div>
+                        </div>
+                      </div>
+                      
+                      <div class="overview-card approved" id="approved-card">
+                        <div class="card-icon">
+                          <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="card-content">
+                          <h3>Approved</h3>
+                          <div class="card-value" id="approved-count">0</div>
+                        </div>
+                      </div>
+                      
+                      <div class="overview-card pending" id="pending-card">
+                        <div class="card-icon">
+                          <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="card-content">
+                          <h3>Pending</h3>
+                          <div class="card-value" id="pending-count">0</div>
+                        </div>
+                      </div>
+                      
+                      <div class="overview-card rejected" id="rejected-card">
+                        <div class="card-icon">
+                          <i class="fas fa-times-circle"></i>
+                        </div>
+                        <div class="card-content">
+                          <h3>Rejected</h3>
+                          <div class="card-value" id="rejected-count">0</div>
+                        </div>
+                      </div>
+                      
+                      <div class="overview-card hold" id="hold-card">
+                        <div class="card-icon">
+                          <i class="fas fa-pause-circle"></i>
+                        </div>
+                        <div class="card-content">
+                          <h3>On Hold</h3>
+                          <div class="card-value" id="hold-count">0</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Recent Activity -->
+                    <div class="dashboard-recent">
+                      <h3><i class="fas fa-history"></i> Recent Activity</h3>
+                      <div class="recent-list" id="recent-activity">
+                        <div class="loading-spinner">
+                          <div class="spinner"></div>
+                          <p>Loading activity...</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Status Charts -->
+                    <div class="dashboard-charts">
+                      <div class="chart-container">
+                        <h3><i class="fas fa-chart-pie"></i> Status Distribution</h3>
+                        <canvas id="status-chart"></canvas>
+                      </div>
+                      <div class="chart-container">
+                        <h3><i class="fas fa-chart-line"></i> Weekly Processing</h3>
+                        <canvas id="weekly-chart"></canvas>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Detailed View Section (hidden by default) -->
+                  <div class="dashboard-detail" id="detail-view" style="display: none;">
+                    <div class="detail-header">
+                      <button class="btn btn-outline" id="back-to-overview">
+                        <i class="fas fa-arrow-left"></i> Back to Overview
+                      </button>
+                      <h3 id="detail-title">Approved Invoices</h3>
+                    </div>
+                    
+                    <div class="table-controls">
+                      <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="dashboard-search" placeholder="Search invoices...">
+                      </div>
+                      <div class="table-actions">
+                        <button class="btn btn-outline" id="refresh-dashboard">
+                          <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                      <table id="dashboard-table" class="display" style="width:100%">
+                        <thead>
+                          <tr>
+                            <th>Document #</th>
+                            <th>PO #</th>
+                            <th>Date</th>
+                            <th>Created Time</th>
+                            <th>Vendor</th>
+                            <th>Document Type</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <!-- Data will be loaded from server -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </section>
+
+                <section id="vendor-master-section" class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-users"></i> Vendor Master</h2>
+                        <p>Manage vendor information and details</p>
+                    </div>
+
+                    <div class="vendor-master-tabs">
+                        <div class="vendor-tab-header">
+                            <button class="vendor-tab-btn active" data-tab="add-vendor">Add Vendor</button>
+                            <button class="vendor-tab-btn" data-tab="add-details">Add Vendor Details</button>
+                            <button class="vendor-tab-btn" data-tab="vendor-list">Vendor List</button>
+                        </div>
+
+                        <!-- Add Vendor Tab -->
+                        <div class="vendor-tab-content active" id="add-vendor-tab">
+                            <form id="vendor-basic-form" class="vendor-form">
+                                <div class="form-group">
+                                    <label for="vendor-id" class="form-label">Vendor ID *</label>
+                                    <input type="text" id="vendor-id" name="vendor-id" class="form-control" required>
+                                    <p class="info-text">Unique identifier for the vendor</p>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="vendor-name" class="form-label">Vendor Name *</label>
+                                    <input type="text" id="vendor-name" name="vendor-name" class="form-control" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="vendor-email" class="form-label">Email *</label>
+                                    <input type="email" id="vendor-email" name="vendor-email" class="form-control" required>
+                                </div>
+
+                                <div class="form-footer">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Create Vendor
+                                    </button>
+                                    <div id="vendor-basic-status" class="status-message"></div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Add Vendor Details Tab -->
+                        <div class="vendor-tab-content" id="add-details-tab">
+                            <form id="vendor-details-form" class="vendor-form">
+                                <div class="form-group">
+                                    <label for="vendor-select" class="form-label">Select Vendor *</label>
+                                    <select id="vendor-select" name="vendor-select" class="form-control" required>
+                                        <option value="">-- Select Vendor --</option>
+                                    </select>
+                                </div>
+
+                                <div class="vendor-details-container">
+                                    <div class="vendor-details-section">
+                                        <h4><i class="fas fa-info-circle"></i> Basic Information</h4>
+                                        <div class="form-group">
+                                            <label for="vendor-type" class="form-label">Vendor Type</label>
+                                            <select id="vendor-type" name="vendor-type" class="form-control">
+                                                <option value="">-- Select Type --</option>
+                                                <option value="Manufacturer">Manufacturer</option>
+                                                <option value="Supplier">Supplier</option>
+                                                <option value="Service Provider">Service Provider</option>
+                                                <option value="Distributor">Distributor</option>
+                                                <option value="Contractor">Contractor</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="vendor-details-section">
+                                        <h4><i class="fas fa-map-marker-alt"></i> Address Information</h4>
+                                        <div class="form-group">
+                                            <label for="street" class="form-label">Street Address *</label>
+                                            <input type="text" id="street" name="street" class="form-control" required>
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label for="city" class="form-label">City *</label>
+                                                <input type="text" id="city" name="city" class="form-control" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="state" class="form-label">State *</label>
+                                                <input type="text" id="state" name="state" class="form-control" required>
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label for="country" class="form-label">Country *</label>
+                                                <input type="text" id="country" name="country" class="form-control" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="postal-code" class="form-label">Postal Code *</label>
+                                                <input type="text" id="postal-code" name="postal-code" class="form-control" required>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="vendor-details-section">
+                                        <h4><i class="fas fa-phone"></i> Contact Information</h4>
+                                        <div class="form-group">
+                                            <label for="contact-person" class="form-label">Contact Person</label>
+                                            <input type="text" id="contact-person" name="contact-person" class="form-control">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="contact-number" class="form-label">Contact Number *</label>
+                                            <input type="tel" id="contact-number" name="contact-number" class="form-control" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="alternate-number" class="form-label">Alternate Number</label>
+                                            <input type="tel" id="alternate-number" name="alternate-number" class="form-control">
+                                        </div>
+                                    </div>
+
+                                    <div class="vendor-details-section">
+                                        <h4><i class="fas fa-file-invoice-dollar"></i> Tax Information</h4>
+                                        <div class="form-group">
+                                            <label for="pan-number" class="form-label">PAN Number *</label>
+                                            <input type="text" id="pan-number" name="pan-number" class="form-control" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="gstin" class="form-label">GSTIN</label>
+                                            <input type="text" id="gstin" name="gstin" class="form-control">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">TDS Applicable</label>
+                                            <div class="radio-group">
+                                                <label class="radio-container">
+                                                    <input type="radio" name="tds-applicable" value="yes">
+                                                    <span class="radio-checkmark"></span>
+                                                    <span class="radio-label">Yes</span>
+                                                </label>
+                                                <label class="radio-container">
+                                                    <input type="radio" name="tds-applicable" value="no" checked>
+                                                    <span class="radio-checkmark"></span>
+                                                    <span class="radio-label">No</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div id="tds-details" style="display: none;">
+                                            <div class="form-group">
+                                                <label for="tds-section" class="form-label">TDS Section</label>
+                                                <select id="tds-section" name="tds-section" class="form-control">
+                                                    <option value="">-- Select Section --</option>
+                                                    <option value="192">192 - Salaries</option>
+                                                    <option value="193">193 - Interest on securities</option>
+                                                    <option value="194A">194A - Interest other than securities</option>
+                                                    <option value="194C">194C - Payments to contractors</option>
+                                                    <option value="194H">194H - Commission or brokerage</option>
+                                                    <option value="194I">194I - Rent</option>
+                                                    <option value="194IA">194IA - Transfer of immovable property</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="tds-rate" class="form-label">TDS Rate (%)</label>
+                                                <input type="number" id="tds-rate" name="tds-rate" class="form-control" min="0" max="100" step="0.1" readonly>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="vendor-details-section">
+                                        <h4><i class="fas fa-industry"></i> MSME Information</h4>
+                                        <div class="form-group">
+                                            <label class="form-label">MSME Registered</label>
+                                            <div class="radio-group">
+                                                <label class="radio-container">
+                                                    <input type="radio" name="msme-registered" value="yes">
+                                                    <span class="radio-checkmark"></span>
+                                                    <span class="radio-label">Yes</span>
+                                                </label>
+                                                <label class="radio-container">
+                                                    <input type="radio" name="msme-registered" value="no" checked>
+                                                    <span class="radio-checkmark"></span>
+                                                    <span class="radio-label">No</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div id="msme-details" style="display: none;">
+                                            <div class="form-group">
+                                                <label for="msme-number" class="form-label">MSME Number</label>
+                                                <input type="text" id="msme-number" name="msme-number" class="form-control">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="vendor-details-section">
+                                        <h4><i class="fas fa-university"></i> Bank Information</h4>
+                                        <div class="form-group">
+                                            <label for="bank-name" class="form-label">Bank Name *</label>
+                                            <input type="text" id="bank-name" name="bank-name" class="form-control" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="account-number" class="form-label">Account Number *</label>
+                                            <input type="text" id="account-number" name="account-number" class="form-control" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="account-holder" class="form-label">Account Holder Name *</label>
+                                            <input type="text" id="account-holder" name="account-holder" class="form-control" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="ifsc-code" class="form-label">IFSC Code *</label>
+                                            <input type="text" id="ifsc-code" name="ifsc-code" class="form-control" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="vendor-details-section">
+                                        <h4><i class="fas fa-money-bill-wave"></i> Payment Information</h4>
+                                        <div class="form-group">
+                                            <label for="payment-terms" class="form-label">Payment Terms</label>
+                                            <input type="text" id="payment-terms" name="payment-terms" class="form-control">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="currency" class="form-label">Currency</label>
+                                            <select id="currency" name="currency" class="form-control">
+                                                <option value="INR">Indian Rupee (INR)</option>
+                                                <option value="USD">US Dollar (USD)</option>
+                                                <option value="EUR">Euro (EUR)</option>
+                                                <option value="GBP">British Pound (GBP)</option>
+                                                <option value="AUD">Australian Dollar (AUD)</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="payment-method" class="form-label">Preferred Payment Method</label>
+                                            <select id="payment-method" name="payment-method" class="form-control">
+                                                <option value="NEFT">NEFT</option>
+                                                <option value="UPI">UPI</option>
+                                                <option value="DD">Demand Draft</option>
+                                                <option value="Cheque">Cheque</option>
+                                                <option value="RTGS">RTGS</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="vendor-details-section">
+                                        <h4><i class="fas fa-sticky-note"></i> Additional Information</h4>
+                                        <div class="form-group">
+                                            <label for="additional-notes" class="form-label">Notes</label>
+                                            <textarea id="additional-notes" name="additional-notes" class="form-control" rows="3"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-footer">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Save Vendor Details
+                                    </button>
+                                    <div id="vendor-details-status" class="status-message"></div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Vendor List Tab -->
+                        <div class="vendor-tab-content" id="vendor-list-tab">
+                            <div class="table-controls">
+                                <div class="search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" id="vendor-search" placeholder="Search vendors...">
+                                </div>
+                                <div class="table-actions">
+                                    <button class="btn btn-outline" id="refresh-vendors">
+                                        <i class="fas fa-sync-alt"></i> Refresh
+                                    </button>
+                                    <button class="btn btn-outline" id="export-vendors">
+                                        <i class="fas fa-file-export"></i> Export
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table id="vendors-table" class="display" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th>Vendor ID</th>
+                                            <th>Vendor Name</th>
+                                            <th>Email</th>
+                                            <th>Contact</th>
+                                            <th>Type</th>
+                                            <th>PAN</th>
+                                            <th>GSTIN</th>
+                                            <th>Created At</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Data will be loaded from server -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
                 <!-- Settings Section -->
                 <section id="settings-section" class="content-section">
                     <div class="section-header">
                         <h2><i class="fas fa-cog"></i> Settings</h2>
-                        <p>Configure system settings and approval workflow</p>
+                        <p>Configure system settings and preferences</p>
                     </div>
-
-                    <div class="settings-container">
-                        <div class="settings-card">
-                            <h3><i class="fas fa-envelope"></i> Approval Settings</h3>
-                            <p>Configure email addresses for invoice approval notifications</p>
-                            
-                            <div class="form-group">
-                                <label class="form-label">Approver Email Addresses</label>
-                                <div id="approver-emails-container">
-                                    <!-- Approver emails will be loaded here -->
-                                </div>
-                                <div class="add-approver-container">
-                                    <input type="email" id="new-approver-email" class="form-control" placeholder="Enter email address">
-                                    <button class="btn btn-primary" id="add-approver-btn">
-                                        <i class="fas fa-plus"></i> Add Approver
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="settings-card">
-                            <h3><i class="fas fa-sliders-h"></i> System Settings</h3>
-                            <p>Configure default system preferences</p>
-                            
-                            <div class="form-group">
-                                <label for="default-gst-rate" class="form-label">Default GST Rate (%)</label>
-                                <input type="number" id="default-gst-rate" class="form-control" value="18" min="0" max="100" step="0.1">
-                            </div>
-                            
-                            <button class="btn btn-primary" id="save-settings-btn">
-                                <i class="fas fa-save"></i> Save Settings
-                            </button>
-                        </div>
+                    <div class="settings-redirect">
+                        <a href="settings.html" class="btn btn-primary">
+                            <i class="fas fa-external-link-alt"></i> Go to Settings Page
+                        </a>
+                        <a href="log.html" class="btn btn-primary">
+                            <i class="fas fa-clipboard-check"></i> Go to log Page
+                        </a>
                     </div>
                 </section>
             </div>
         </div>
     </div>
+
+    <div id="vendor-detail-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Vendor Details</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="vendor-detail-container">
+                    <div class="vendor-detail-section">
+                        <h4><i class="fas fa-info-circle"></i> Basic Information</h4>
+                        <div class="detail-row">
+                            <span class="detail-label">Vendor ID:</span>
+                            <span class="detail-value" id="detail-vendor-id"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Vendor Name:</span>
+                            <span class="detail-value" id="detail-vendor-name"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Email:</span>
+                            <span class="detail-value" id="detail-vendor-email"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Vendor Type:</span>
+                            <span class="detail-value" id="detail-vendor-type"></span>
+                        </div>
+                    </div>
+
+                    <div class="vendor-detail-section">
+                        <h4><i class="fas fa-map-marker-alt"></i> Address Information</h4>
+                        <div class="detail-row">
+                            <span class="detail-label">Address:</span>
+                            <span class="detail-value" id="detail-vendor-address"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">City/State:</span>
+                            <span class="detail-value" id="detail-vendor-city-state"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Country/Postal:</span>
+                            <span class="detail-value" id="detail-vendor-country-postal"></span>
+                        </div>
+                    </div>
+
+                    <div class="vendor-detail-section">
+                        <h4><i class="fas fa-phone"></i> Contact Information</h4>
+                        <div class="detail-row">
+                            <span class="detail-label">Contact Person:</span>
+                            <span class="detail-value" id="detail-contact-person"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Contact Number:</span>
+                            <span class="detail-value" id="detail-contact-number"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Alternate Number:</span>
+                            <span class="detail-value" id="detail-alternate-number"></span>
+                        </div>
+                    </div>
+
+                    <div class="vendor-detail-section">
+                        <h4><i class="fas fa-file-invoice-dollar"></i> Tax Information</h4>
+                        <div class="detail-row">
+                            <span class="detail-label">PAN Number:</span>
+                            <span class="detail-value" id="detail-pan-number"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">GSTIN:</span>
+                            <span class="detail-value" id="detail-gstin"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">TDS Applicable:</span>
+                            <span class="detail-value" id="detail-tds-applicable"></span>
+                        </div>
+                        <div class="detail-row" id="detail-tds-section-row" style="display: none;">
+                            <span class="detail-label">TDS Section:</span>
+                            <span class="detail-value" id="detail-tds-section"></span>
+                        </div>
+                        <div class="detail-row" id="detail-tds-rate-row" style="display: none;">
+                            <span class="detail-label">TDS Rate:</span>
+                            <span class="detail-value" id="detail-tds-rate"></span>
+                        </div>
+                    </div>
+
+                    <div class="vendor-detail-section">
+                        <h4><i class="fas fa-industry"></i> MSME Information</h4>
+                        <div class="detail-row">
+                            <span class="detail-label">MSME Registered:</span>
+                            <span class="detail-value" id="detail-msme-registered"></span>
+                        </div>
+                        <div class="detail-row" id="detail-msme-number-row" style="display: none;">
+                            <span class="detail-label">MSME Number:</span>
+                            <span class="detail-value" id="detail-msme-number"></span>
+                        </div>
+                    </div>
+
+                    <div class="vendor-detail-section">
+                        <h4><i class="fas fa-university"></i> Bank Information</h4>
+                        <div class="detail-row">
+                            <span class="detail-label">Bank Name:</span>
+                            <span class="detail-value" id="detail-bank-name"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Account Number:</span>
+                            <span class="detail-value" id="detail-account-number"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Account Holder:</span>
+                            <span class="detail-value" id="detail-account-holder"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">IFSC Code:</span>
+                            <span class="detail-value" id="detail-ifsc-code"></span>
+                        </div>
+                    </div>
+
+                    <div class="vendor-detail-section">
+                        <h4><i class="fas fa-money-bill-wave"></i> Payment Information</h4>
+                        <div class="detail-row">
+                            <span class="detail-label">Payment Terms:</span>
+                            <span class="detail-value" id="detail-payment-terms"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Currency:</span>
+                            <span class="detail-value" id="detail-currency"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Payment Method:</span>
+                            <span class="detail-value" id="detail-payment-method"></span>
+                        </div>
+                    </div>
+
+                    <div class="vendor-detail-section">
+                        <h4><i class="fas fa-sticky-note"></i> Additional Information</h4>
+                        <div class="detail-row">
+                            <span class="detail-label">Notes:</span>
+                            <span class="detail-value" id="detail-additional-notes"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary modal-close">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div id="add-user-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New User</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="user-name" class="form-label">Full Name *</label>
+                    <input type="text" id="user-name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="user-email" class="form-label">Email *</label>
+                    <input type="email" id="user-email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="user-role" class="form-label">Role *</label>
+                    <select id="user-role" class="form-control" required>
+                        <option value="">Select Role</option>
+                        <option value="AP">AP Team</option>
+                        <option value="CFO">CFO Team</option>
+                        <option value="Manager">Manager</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="user-password" class="form-label">Password *</label>
+                    <input type="password" id="user-password" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="user-confirm-password" class="form-label">Confirm Password *</label>
+                    <input type="password" id="user-confirm-password" class="form-control" required>
+                </div>
+                <div id="user-status" class="status-message"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline modal-close">Cancel</button>
+                <button class="btn btn-primary" id="save-user-btn">Save User</button>
+            </div>
+        </div>
+    </div>
+    
 
     <!-- Invoice Detail Modal -->
     <div id="invoice-detail-modal" class="modal">
@@ -381,6 +1281,9 @@
                         <div>
                             <h5>Vendor Information</h5>
                             <p id="vendor-info-display"></p>
+                            
+                            <h5>Document Type</h5>
+                            <p id="document-type-display"></p>
                         </div>
                         <div>
                             <h5>Payment Terms</h5>
@@ -404,8 +1307,16 @@
                                 <span class="amount-value" id="modal-subtotal-amount">$0.00</span>
                             </div>
                             <div class="amount-row">
-                                <span class="amount-label">GST:</span>
-                                <span class="amount-value" id="modal-gst-amount">$0.00 (18%)</span>
+                                <span class="amount-label">CGST (9%):</span>
+                                <span class="amount-value" id="modal-cgst-amount">$0.00</span>
+                            </div>
+                            <div class="amount-row">
+                                <span class="amount-label">SGST (9%):</span>
+                                <span class="amount-value" id="modal-sgst-amount">$0.00</span>
+                            </div>
+                            <div class="amount-row">
+                                <span class="amount-label">GST (18%):</span>
+                                <span class="amount-value" id="modal-gst-amount">$0.00</span>
                                 <button type="button" class="btn btn-outline btn-sm" id="modal-set-gst-btn">
                                     <i class="fas fa-cog"></i> Set GST
                                 </button>
@@ -420,6 +1331,12 @@
                     <!-- Custom Fields Section in Modal -->
                     <div id="custom-fields-display">
                         <!-- Custom fields will be loaded here -->
+                    </div>
+
+                    <!-- Attachments Section in Modal -->
+                    <div id="attachments-display">
+                        <h5>Attachments</h5>
+                        <div id="attachments-list-display"></div>
                     </div>
                 </div>
             </div>
@@ -508,7 +1425,7 @@
     <script>
         // Initialize PDF.js worker
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js';
-
+    
         // Global variables
         let pdfDocument = null;
         let currentPage = 1;
@@ -525,12 +1442,12 @@
         let selectTextLayer = null;
         let selectedTextSpan = null;
         let isDraggingFromSelect = false;
-        let invoicesTable = null;
-        let currentInvoiceId = null;
-        let currentPdfFile = null;
-        let currentInvoiceData = null;
-        let gstRate = 18; // Default GST rate
-        
+        let gstRate = 18;
+        let currentDocumentType = 'Invoice'; // 'Invoice' or 'PO'
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+        const ALLOWED_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+        let invoicesTable = null; // Store DataTable instance
+    
         // DOM elements
         const browseBtn = document.getElementById('browse-btn');
         const pdfUpload = document.getElementById('pdf-upload');
@@ -544,8 +1461,6 @@
         const formFieldsContainer = document.getElementById('form-fields-container');
         const extractedTextContent = document.getElementById('extracted-text-content');
         const newInvoiceBtn = document.getElementById('new-invoice-btn');
-        const refreshInvoicesBtn = document.getElementById('refresh-invoices');
-        const invoiceSearch = document.getElementById('invoice-search');
         const saveBtn = document.getElementById('save-btn');
         const formStatus = document.getElementById('form-status');
         const contextMenu = document.getElementById('context-menu');
@@ -554,53 +1469,88 @@
         const setGstBtn = document.getElementById('set-gst-btn');
         const modalSetGstBtn = document.getElementById('modal-set-gst-btn');
         const totalAmountInput = document.getElementById('total-amount');
-        const addApproverBtn = document.getElementById('add-approver-btn');
-        const saveSettingsBtn = document.getElementById('save-settings-btn');
+        const addAttachmentBtn = document.getElementById('add-attachment-btn');
+        const fileAttachments = document.getElementById('file-attachments');
+        const attachmentsList = document.getElementById('attachments-list');
         
-        // Initialize
+        // PO elements
+        const poBrowseBtn = document.getElementById('po-browse-btn');
+        const poPdfUpload = document.getElementById('po-pdf-upload');
+        const poDropZone = document.getElementById('po-drop-zone');
+        const poUploadStatus = document.getElementById('po-upload-status');
+        const poCurrentFilename = document.getElementById('po-current-filename');
+        const poDocumentInfo = document.getElementById('po-document-info');
+        const poSaveBtn = document.getElementById('po-save-btn');
+
+        // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
             setupEventListeners();
             updateZoomDisplay();
-            initializeDataTable();
-            loadInvoices();
-            loadApproverEmails();
             
-            // Set active section based on hash
             if (window.location.hash) {
                 showSection(window.location.hash);
             }
+            
+            // Initialize DataTables for invoices if not already initialized
+            if (!$.fn.DataTable.isDataTable('#invoices-table')) {
+                invoicesTable = $('#invoices-table').DataTable({
+                    ajax: {
+                        url: '/api/invoices',
+                        dataSrc: ''
+                    },
+                    columns: [
+                        { data: 'documentNumber' },
+                        { data: 'poNumber' },
+                        { data: 'date' },
+                        { data: 'createdAt' },
+                        { data: 'vendor' },
+                        { data: 'documentType' },
+                        { data: 'totalAmount' },
+                        { data: 'status' },
+                        { 
+                            data: null,
+                            render: function(data, type, row) {
+                                return `<button class="btn btn-sm btn-view" data-id="${row.id}">View</button>`;
+                            }
+                        }
+                    ]
+                });
+            }
         });
-        
+    
         function setupEventListeners() {
             // Navigation links
-            document.querySelectorAll('.sidebar nav a').forEach(link => {
+            document.querySelectorAll('.sidebar nav a:not(.process-option)').forEach(link => {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
                     showSection(this.getAttribute('href'));
                 });
             });
             
-            // New invoice button
-            newInvoiceBtn.addEventListener('click', function() {
-                showSection('#upload-section');
-                resetForm();
+            // Process option links
+            document.querySelectorAll('.process-option').forEach(option => {
+                option.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    currentDocumentType = this.dataset.type;
+                    showSection(this.getAttribute('href'));
+                    resetForm();
+                    document.getElementById('page-title').textContent = `Process ${currentDocumentType}`;
+                });
             });
             
-            // Refresh invoices button
-            refreshInvoicesBtn.addEventListener('click', loadInvoices);
-            
-            // Search input
-            invoiceSearch.addEventListener('input', function() {
-                if (invoicesTable) {
-                    invoicesTable.search(this.value).draw();
-                }
+            // New invoice button
+            newInvoiceBtn.addEventListener('click', function() {
+                showSection('#invoice-section');
+                resetForm();
             });
             
             // Tab functionality
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', function() {
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    const tabPrefix = this.closest('.document-viewer-container').id.includes('po') ? 'po-' : '';
+                    
+                    document.querySelectorAll(`.tab[data-tab^="${tabPrefix}"]`).forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll(`.tab-content[id^="${tabPrefix}"]`).forEach(c => c.classList.remove('active'));
                     
                     this.classList.add('active');
                     document.getElementById(`${this.dataset.tab}-tab`).classList.add('active');
@@ -612,8 +1562,13 @@
                 pdfUpload.click();
             });
             
+            poBrowseBtn.addEventListener('click', function() {
+                poPdfUpload.click();
+            });
+            
             // File input change handler
             pdfUpload.addEventListener('change', handleFileSelect);
+            poPdfUpload.addEventListener('change', handlePoFileSelect);
             
             // Drag and drop handlers
             dropZone.addEventListener('dragover', function(e) {
@@ -621,7 +1576,16 @@
                 this.classList.add('dragover');
             });
             
+            poDropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('dragover');
+            });
+            
             dropZone.addEventListener('dragleave', function() {
+                this.classList.remove('dragover');
+            });
+            
+            poDropZone.addEventListener('dragleave', function() {
                 this.classList.remove('dragover');
             });
             
@@ -635,31 +1599,56 @@
                 }
             });
             
+            poDropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('dragover');
+                
+                if (e.dataTransfer.files.length) {
+                    poPdfUpload.files = e.dataTransfer.files;
+                    handlePoFileSelect({ target: poPdfUpload });
+                }
+            });
+            
             // Zoom controls
             document.getElementById('zoom-in').addEventListener('click', function() { zoomIn('viewer'); });
             document.getElementById('zoom-out').addEventListener('click', function() { zoomOut('viewer'); });
             document.getElementById('select-zoom-in').addEventListener('click', function() { zoomIn('select'); });
             document.getElementById('select-zoom-out').addEventListener('click', function() { zoomOut('select'); });
+            document.getElementById('po-zoom-in').addEventListener('click', function() { zoomIn('po-viewer'); });
+            document.getElementById('po-zoom-out').addEventListener('click', function() { zoomOut('po-viewer'); });
+            document.getElementById('po-select-zoom-in').addEventListener('click', function() { zoomIn('po-select'); });
+            document.getElementById('po-select-zoom-out').addEventListener('click', function() { zoomOut('po-select'); });
             
             // Page navigation
             document.getElementById('prev-page').addEventListener('click', function() { goToPrevPage('viewer'); });
             document.getElementById('next-page').addEventListener('click', function() { goToNextPage('viewer'); });
             document.getElementById('select-prev-page').addEventListener('click', function() { goToPrevPage('select'); });
             document.getElementById('select-next-page').addEventListener('click', function() { goToNextPage('select'); });
+            document.getElementById('po-prev-page').addEventListener('click', function() { goToPrevPage('po-viewer'); });
+            document.getElementById('po-next-page').addEventListener('click', function() { goToNextPage('po-viewer'); });
+            document.getElementById('po-select-prev-page').addEventListener('click', function() { goToPrevPage('po-select'); });
+            document.getElementById('po-select-next-page').addEventListener('click', function() { goToNextPage('po-select'); });
             
             // Add item button
             addItemBtn.addEventListener('click', addInvoiceItem);
+            document.getElementById('po-add-item-btn').addEventListener('click', addPoItem);
             
             // Add custom field button
             addCustomFieldBtn.addEventListener('click', function() {
                 document.getElementById('add-field-modal').style.display = 'flex';
             });
             
-            // Save field button
-            document.getElementById('save-field-btn').addEventListener('click', addCustomField);
+            document.getElementById('po-add-custom-field-btn').addEventListener('click', function() {
+                document.getElementById('add-field-modal').style.display = 'flex';
+            });
             
             // Set GST button
             setGstBtn.addEventListener('click', function() {
+                document.getElementById('gst-rate').value = gstRate;
+                document.getElementById('set-gst-modal').style.display = 'flex';
+            });
+            
+            document.getElementById('po-set-gst-btn').addEventListener('click', function() {
                 document.getElementById('gst-rate').value = gstRate;
                 document.getElementById('set-gst-modal').style.display = 'flex';
             });
@@ -670,27 +1659,20 @@
                 document.getElementById('set-gst-modal').style.display = 'flex';
             });
             
-            // Save GST button
-            document.getElementById('save-gst-btn').addEventListener('click', function() {
-                const newRate = parseFloat(document.getElementById('gst-rate').value);
-                if (isNaN(newRate)) {
-                    showStatus('Please enter a valid number', 'error', document.getElementById('gst-status'));
-                    return;
-                }
-                
-                gstRate = newRate;
-                updateAmountDetails();
-                document.getElementById('set-gst-modal').style.display = 'none';
-            });
-            
             // Form submission
             document.getElementById('invoice-form').addEventListener('submit', function(e) {
                 e.preventDefault();
-                saveInvoice();
+                saveDocument();
+            });
+            
+            document.getElementById('po-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveDocument();
             });
             
             // Total amount input change handler
             totalAmountInput.addEventListener('change', updateAmountDetails);
+            document.getElementById('po-total-amount').addEventListener('change', updatePoAmountDetails);
             
             // Setup drag and drop for form fields
             document.querySelectorAll('.drop-area').forEach(dropArea => {
@@ -717,19 +1699,20 @@
                             if (input) {
                                 input.value = text;
                                 
-                                // Show visual feedback
                                 this.classList.add('field-match');
                                 setTimeout(() => {
                                     this.classList.remove('field-match');
                                 }, 1000);
                                 
-                                // If this is the total amount field, update amount details
-                                if (fieldId === 'total-amount') {
-                                    updateAmountDetails();
+                                if (fieldId === 'total-amount' || fieldId === 'po-total-amount') {
+                                    if (fieldId === 'total-amount') {
+                                        updateAmountDetails();
+                                    } else {
+                                        updatePoAmountDetails();
+                                    }
                                 }
                             }
-                        } else if (this.id === 'invoice-items-drop') {
-                            // Handle drop on invoice items container
+                        } else if (this.id === 'invoice-items-drop' || this.id === 'po-items-drop') {
                             const activeItemField = document.querySelector('.item-card input:focus');
                             if (activeItemField) {
                                 activeItemField.value = text;
@@ -741,7 +1724,10 @@
             
             // Document mouse events for text selection
             document.addEventListener('mousedown', function(e) {
-                if (e.target.closest('#pdf-select-viewer span') || e.target.closest('#extracted-text-content span')) {
+                if (e.target.closest('#pdf-select-viewer span') || 
+                    e.target.closest('#extracted-text-content span') ||
+                    e.target.closest('#po-pdf-select-viewer span') ||
+                    e.target.closest('#po-extracted-text-content span')) {
                     isDraggingFromSelect = true;
                     selectedTextSpan = e.target.closest('span');
                 }
@@ -766,19 +1752,14 @@
                 }
             });
             
-            // Modal close buttons
-            document.querySelectorAll('.modal-close').forEach(btn => {
-                btn.addEventListener('click', closeModal);
-            });
-
             // Right-click context menu for form fields
-            document.querySelectorAll('#form-fields-container input, #form-fields-container textarea').forEach(input => {
+            document.querySelectorAll('#form-fields-container input, #form-fields-container textarea, #po-form-fields-container input, #po-form-fields-container textarea').forEach(input => {
                 input.addEventListener('contextmenu', function(e) {
                     e.preventDefault();
                     showContextMenu(e, this);
                 });
             });
-
+    
             // Context menu item click
             editFieldBtn.addEventListener('click', function() {
                 if (activeInput) {
@@ -787,108 +1768,34 @@
                 }
                 hideContextMenu();
             });
-
+    
             // Hide context menu when clicking elsewhere
             document.addEventListener('click', function() {
                 hideContextMenu();
             });
-
-            // View invoice click handler in DataTable
-            $('#invoices-table').on('click', '.view-invoice', function() {
-                const invoiceId = $(this).data('id');
-                viewInvoiceDetails(invoiceId);
+    
+            // Modal close buttons
+            document.querySelectorAll('.modal-close').forEach(btn => {
+                btn.addEventListener('click', closeModal);
+            });
+    
+            // Save field button
+            document.getElementById('save-field-btn').addEventListener('click', addCustomField);
+            
+            // Add attachment button
+            addAttachmentBtn.addEventListener('click', function() {
+                fileAttachments.click();
             });
             
-            // Delete invoice click handler in DataTable
-            $('#invoices-table').on('click', '.delete-invoice', function() {
-                const invoiceId = $(this).data('id');
-                deleteInvoice(invoiceId);
+            // File attachment change handler
+            fileAttachments.addEventListener('change', handleFileAttachments);
+            
+            // Refresh invoices button
+            document.getElementById('refresh-invoices').addEventListener('click', function() {
+                $('#invoices-table').DataTable().ajax.reload();
             });
-
-            // Edit total button
-            document.getElementById('edit-total-btn').addEventListener('click', function() {
-                const currentTotal = document.getElementById('invoice-total-amount').textContent;
-                document.getElementById('edit-total-amount').value = currentTotal;
-                document.getElementById('edit-total-modal').style.display = 'flex';
-            });
-
-            // Save total button
-            document.getElementById('save-total-btn').addEventListener('click', function() {
-                const newTotal = document.getElementById('edit-total-amount').value;
-                
-                if (!newTotal) {
-                    showStatus('Total amount is required', 'error', document.getElementById('edit-total-status'));
-                    return;
-                }
-
-                showLoading(true);
-                fetch(`/api/invoices/${currentInvoiceId}/total`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ totalAmount: newTotal })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById('invoice-total-amount').textContent = newTotal;
-                        document.getElementById('edit-total-modal').style.display = 'none';
-                        showStatus('Total amount updated successfully', 'success', document.getElementById('edit-total-status'));
-                        loadInvoices();
-                    } else {
-                        throw new Error(data.error || 'Failed to update total amount');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error updating total amount:', error);
-                    showStatus('Error updating total amount: ' + error.message, 'error', document.getElementById('edit-total-status'));
-                })
-                .finally(() => {
-                    showLoading(false);
-                });
-            });
-
-            // Modal page navigation
-            document.getElementById('modal-prev-page').addEventListener('click', function() {
-                if (modalCurrentPage > 1) {
-                    modalCurrentPage--;
-                    renderModalPage(modalCurrentPage);
-                    updateModalPageInfo();
-                }
-            });
-
-            document.getElementById('modal-next-page').addEventListener('click', function() {
-                if (currentPdfFile && modalCurrentPage < currentPdfFile.numPages) {
-                    modalCurrentPage++;
-                    renderModalPage(modalCurrentPage);
-                    updateModalPageInfo();
-                }
-            });
-
-            // Modal tab switching
-            document.querySelectorAll('.modal-tab').forEach(tab => {
-                tab.addEventListener('click', function() {
-                    document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.modal-tab-content').forEach(c => c.classList.remove('active'));
-                    
-                    this.classList.add('active');
-                    document.getElementById(`${this.dataset.tab}-tab`).classList.add('active');
-                });
-            });
-
-            // Add approver email
-            addApproverBtn.addEventListener('click', addApproverEmail);
-
-            // Save settings
-            saveSettingsBtn.addEventListener('click', saveSettings);
         }
-
+    
         // Show context menu
         function showContextMenu(e, input) {
             e.preventDefault();
@@ -897,7 +1804,7 @@
             contextMenu.style.left = `${e.pageX}px`;
             contextMenu.style.top = `${e.pageY}px`;
         }
-
+    
         // Hide context menu
         function hideContextMenu() {
             contextMenu.style.display = 'none';
@@ -906,405 +1813,40 @@
         
         // Show section based on hash
         function showSection(sectionId) {
-            // Update URL hash
             window.location.hash = sectionId;
             
-            // Update page title
             const titleMap = {
-                '#upload-section': 'Process Invoice',
+                '#invoice-section': 'Process Invoice',
+                '#po-section': 'Process PO',
                 '#invoices-section': 'Invoice Records',
-                '#settings-section': 'System Settings'
+                '#settings-section': 'System Settings',
+                '#dashboard-section': 'Dashboard'
             };
+            
             document.getElementById('page-title').textContent = titleMap[sectionId] || 'Invoice Processor';
             
-            // Update active section
             document.querySelectorAll('.content-section').forEach(section => {
                 section.classList.remove('active');
             });
             document.querySelector(sectionId).classList.add('active');
             
-            // Update active nav link
             document.querySelectorAll('.sidebar nav li').forEach(li => {
                 li.classList.remove('active');
             });
-            document.querySelector(`.sidebar nav a[href="${sectionId}"]`).parentElement.classList.add('active');
-        }
-        
-        // Initialize DataTable
-        function initializeDataTable() {
-            invoicesTable = $('#invoices-table').DataTable({
-                ajax: {
-                    url: '/api/invoices',
-                    dataSrc: 'data'
-                },
-                columns: [
-                    { data: 'invoice_number' },
-                    { data: 'po_number' },
-                    { 
-                        data: 'invoice_date',
-                        render: function(data) {
-                            return data ? moment(data).format('MMM D, YYYY') : 'N/A';
-                        }
-                    },
-                    { 
-                        data: 'created_at',
-                        render: function(data) {
-                            return data ? moment(data).format('MMM D, YYYY h:mm A') : 'N/A';
-                        }
-                    },
-                    { 
-                        data: 'vendor_info',
-                        render: function(data) {
-                            return data ? data.split('\n')[0] : 'N/A';
-                        }
-                    },
-                    { 
-                        data: 'total_amount',
-                        render: function(data) {
-                            return data ? data : '$0.00';
-                        }
-                    },
-                    { 
-                        data: 'status',
-                        render: function(data, type, row) {
-                            let statusClass = 'status-pending';
-                            let statusText = 'Pending';
-                            
-                            if (data === 'approved') {
-                                statusClass = 'status-approved';
-                                statusText = 'Approved';
-                            } else if (data === 'rejected') {
-                                statusClass = 'status-rejected';
-                                statusText = 'Rejected';
-                            } else if (data === 'on_hold') {
-                                statusClass = 'status-hold';
-                                statusText = 'On Hold';
-                            }
-                            
-                            return `<span class="status-badge ${statusClass}">${statusText}</span>`;
-                        }
-                    },
-                    {
-                        data: 'id',
-                        render: function(data, type, row) {
-                            return `
-                                <div class="action-buttons">
-                                    <button class="btn-action view-invoice" data-id="${data}">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button class="btn-action delete-invoice" data-id="${data}">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            `;
-                        },
-                        orderable: false
-                    }
-                ],
-                order: [[3, 'desc']],
-                responsive: true
-            });
-        }
-        
-        // Load invoices from server
-        function loadInvoices() {
-            showLoading(true);
-            fetch('/api/invoices')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (invoicesTable) {
-                        invoicesTable.ajax.reload(null, false);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading invoices:', error);
-                    showStatus('Error loading invoices', 'error', uploadStatus);
-                })
-                .finally(() => {
-                    showLoading(false);
-                });
-        }
-        
-        // View invoice details
-        function viewInvoiceDetails(invoiceId) {
-            currentInvoiceId = invoiceId;
-            showLoading(true);
             
-            fetch(`/api/invoices/${invoiceId}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (!data.success) {
-                        throw new Error(data.error || 'Failed to load invoice details');
-                    }
-                    
-                    currentInvoiceData = data.data;
-                    showInvoiceModal();
-                    
-                    // Load document if available
-                    if (data.data.document_url) {
-                        loadDocumentForModal(data.data.document_url);
-                    } else {
-                        document.querySelector('.modal-tab[data-tab="details"]').click();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading invoice details:', error);
-                    showStatus('Error loading invoice details', 'error', uploadStatus);
-                })
-                .finally(() => {
-                    showLoading(false);
-                });
-        }
-
-        // Load document for modal viewer
-        function loadDocumentForModal(documentUrl) {
-            showLoading(true);
-            
-            fetch(documentUrl)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch document');
-                    }
-                    return response.arrayBuffer();
-                })
-                .then(data => {
-                    return pdfjsLib.getDocument(data).promise;
-                })
-                .then(pdf => {
-                    currentPdfFile = pdf;
-                    modalCurrentPage = 1;
-                    modalScale = 1.0;
-                    renderModalPage(modalCurrentPage);
-                    updateModalPageInfo();
-                })
-                .catch(error => {
-                    console.error('Error loading document:', error);
-                    showStatus('Error loading document', 'error', document.getElementById('modal-status'));
-                })
-                .finally(() => {
-                    showLoading(false);
-                });
-        }
-
-        // Show invoice modal
-        function showInvoiceModal() {
-            const modal = document.getElementById('invoice-detail-modal');
-            modal.style.display = 'flex';
-            
-            // Populate invoice details
-            populateInvoiceDetails();
-        }
-
-        // Populate invoice details in the modal
-        function populateInvoiceDetails() {
-            if (!currentInvoiceData) return;
-            
-            // Basic info
-            document.getElementById('invoice-number-display').textContent = `Invoice #${currentInvoiceData.invoice_number || 'N/A'}`;
-            document.getElementById('invoice-date-display').textContent = currentInvoiceData.invoice_date ? 
-                moment(currentInvoiceData.invoice_date).format('MMMM D, YYYY') : 'N/A';
-            document.getElementById('created-at-display').textContent = currentInvoiceData.created_at ? 
-                `Created: ${moment(currentInvoiceData.created_at).format('MMMM D, YYYY h:mm A')}` : 'N/A';
-            
-            // Status display
-            const statusDisplay = document.getElementById('invoice-status-display');
-            statusDisplay.innerHTML = '';
-            
-            let statusClass = 'status-pending';
-            let statusText = 'Pending Approval';
-            
-            if (currentInvoiceData.status === 'approved') {
-                statusClass = 'status-approved';
-                statusText = 'Approved';
-            } else if (currentInvoiceData.status === 'rejected') {
-                statusClass = 'status-rejected';
-                statusText = 'Rejected';
-            } else if (currentInvoiceData.status === 'on_hold') {
-                statusClass = 'status-hold';
-                statusText = 'On Hold';
-            }
-            
-            const statusBadge = document.createElement('span');
-            statusBadge.className = `status-badge ${statusClass}`;
-            statusBadge.textContent = statusText;
-            statusDisplay.appendChild(statusBadge);
-            
-            if (currentInvoiceData.status_notes) {
-                const notes = document.createElement('p');
-                notes.className = 'status-notes';
-                notes.textContent = `Notes: ${currentInvoiceData.status_notes}`;
-                statusDisplay.appendChild(notes);
-            }
-            
-            // Vendor info
-            document.getElementById('vendor-info-display').innerHTML = currentInvoiceData.vendor_info ? 
-                currentInvoiceData.vendor_info.replace(/\n/g, '<br>') : 'N/A';
-            
-            // Other fields
-            document.getElementById('payment-terms-display').textContent = currentInvoiceData.payment_terms || 'Not specified';
-            document.getElementById('po-number-display').textContent = currentInvoiceData.po_number || 'Not specified';
-            document.getElementById('invoice-total-amount').textContent = currentInvoiceData.total_amount ? 
-                formatCurrency(currentInvoiceData.total_amount) : '$0.00';
-            
-            // Items
-            const itemsContainer = document.getElementById('invoice-items-display');
-            itemsContainer.innerHTML = '';
-            
-            if (currentInvoiceData.items && currentInvoiceData.items.length > 0) {
-                const itemsHtml = `
-                    <h4>Items</h4>
-                    <table class="invoice-items-table">
-                        <thead>
-                            <tr>
-                                <th>Description</th>
-                                <th>Quantity</th>
-                                <th>Unit Price</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${currentInvoiceData.items.map(item => `
-                                <tr>
-                                    <td>${item.description || 'N/A'}</td>
-                                    <td>${item.quantity || 'N/A'}</td>
-                                    <td>${item.unit_price ? formatCurrency(item.unit_price) : 'N/A'}</td>
-                                    <td>${item.total ? formatCurrency(item.total) : 'N/A'}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
-                itemsContainer.innerHTML = itemsHtml;
-            }
-
-            // Amount details
-            const totalAmount = parseCurrency(currentInvoiceData.total_amount);
-            updateModalAmountDetails(totalAmount);
-
-            // Custom fields
-            const customFieldsContainer = document.getElementById('custom-fields-display');
-            customFieldsContainer.innerHTML = '';
-            
-            // Check if there are any custom fields in the data
-            if (currentInvoiceData.custom_fields) {
-                try {
-                    const customFields = JSON.parse(currentInvoiceData.custom_fields);
-                    if (customFields && Object.keys(customFields).length > 0) {
-                        const customFieldsHtml = `
-                            <h5>Additional Information</h5>
-                            <div class="custom-fields-container">
-                                ${Object.entries(customFields).map(([name, value]) => `
-                                    <div class="custom-field">
-                                        <span class="custom-field-name">${name}:</span>
-                                        <span class="custom-field-value">${value}</span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        `;
-                        customFieldsContainer.innerHTML = customFieldsHtml;
-                    }
-                } catch (e) {
-                    console.error('Error parsing custom fields:', e);
+            const navLink = document.querySelector(`.sidebar nav a[href="${sectionId}"]`);
+            if (navLink) {
+                navLink.parentElement.classList.add('active');
+            } else {
+                // For dropdown items, highlight the parent
+                const dropdownItem = document.querySelector(`.dropdown-menu a[href="${sectionId}"]`);
+                if (dropdownItem) {
+                    dropdownItem.closest('.dropdown').classList.add('active');
                 }
             }
         }
-
-        // Update amount details in the modal
-        function updateModalAmountDetails(totalAmount) {
-            if (isNaN(totalAmount)) {
-                document.getElementById('modal-subtotal-amount').textContent = '$0.00';
-                document.getElementById('modal-gst-amount').textContent = '$0.00 (0%)';
-                document.getElementById('modal-grand-total-amount').textContent = '$0.00';
-                return;
-            }
-
-            const subtotal = totalAmount / (1+ (gstRate/100));
-            const gstAmount = totalAmount - subtotal;
-
-            document.getElementById('modal-subtotal-amount').textContent = formatCurrency(subtotal);
-            document.getElementById('modal-gst-amount').textContent = `${formatCurrency(gstAmount)} (${gstRate}%)`;
-            document.getElementById('modal-grand-total-amount').textContent = formatCurrency(totalAmount);
-        }
-
-        // Format currency while preserving the original format
-        function formatCurrency(value) {
-            if (typeof value === 'string') {
-                // If it's already formatted (contains letters or symbols), return as is
-                if (/[a-zA-Z$€£¥₹]/.test(value)) {
-                    return value;
-                }
-                
-                // Otherwise, try to parse as number
-                value = parseFloat(value.replace(/[^0-9.-]/g, ''));
-                if (isNaN(value)) return '$0.00';
-            }
-            
-            return new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD'
-            }).format(value);
-        }
-
-        // Parse currency string to number
-        function parseCurrency(value) {
-            if (!value) return 0;
-            if (typeof value === 'number') return value;
-            
-            // Remove all non-numeric characters except decimal point
-            const numericValue = parseFloat(value.replace(/[^0-9.-]/g, ''));
-            return isNaN(numericValue) ? 0 : numericValue;
-        }
         
-        // Delete invoice
-        function deleteInvoice(invoiceId) {
-            if (confirm('Are you sure you want to delete this invoice?')) {
-                showLoading(true);
-                fetch(`/api/invoices/${invoiceId}`, {
-                    method: 'DELETE'
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        showStatus('Invoice deleted successfully', 'success', uploadStatus);
-                        loadInvoices();
-                    } else {
-                        throw new Error(data.error || 'Failed to delete invoice');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error deleting invoice:', error);
-                    showStatus('Error deleting invoice', 'error', uploadStatus);
-                })
-                .finally(() => {
-                    showLoading(false);
-                });
-            }
-        }
-        
-        // Close modal
-        function closeModal() {
-            document.getElementById('invoice-detail-modal').style.display = 'none';
-            document.getElementById('edit-total-modal').style.display = 'none';
-            document.getElementById('set-gst-modal').style.display = 'none';
-            document.getElementById('add-field-modal').style.display = 'none';
-        }
-        
-        // Handle file selection
+        // Handle file select for invoices
         function handleFileSelect(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -1324,12 +1866,10 @@
                 
                 showStatus('Processing document...', 'success', uploadStatus);
                 
-                // Load the PDF
                 pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
                     pdfDocument = pdf;
                     showStatus('Document loaded successfully!', 'success', uploadStatus);
                     
-                    // Reset state
                     currentPage = 1;
                     selectPage = 1;
                     scale = 1.0;
@@ -1338,7 +1878,6 @@
                     detectedFields = {};
                     allTextItems = [];
                     
-                    // Clear previous content
                     document.getElementById('pdf-viewer').innerHTML = '';
                     document.getElementById('pdf-select-viewer').innerHTML = '';
                     document.getElementById('fields-content').innerHTML = '';
@@ -1346,14 +1885,11 @@
                     document.getElementById('custom-fields-container').innerHTML = '';
                     extractedTextContent.innerHTML = '';
                     
-                    // Render the pages
                     renderPage(currentPage, 'viewer');
                     renderPage(selectPage, 'select');
                     
-                    // Extract text from all pages
                     extractTextFromPDF(pdf);
                     
-                    // Update page info
                     updatePageInfo('viewer');
                     updatePageInfo('select');
                     updateZoomDisplay();
@@ -1365,12 +1901,118 @@
             fileReader.readAsArrayBuffer(file);
         }
         
+        // Handle file select for POs
+        function handlePoFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            if (file.type !== 'application/pdf') {
+                showStatus('Please upload a PDF file', 'error', poUploadStatus);
+                return;
+            }
+            
+            poCurrentFilename.textContent = file.name;
+            poDocumentInfo.style.display = 'block';
+            
+            const fileReader = new FileReader();
+            
+            fileReader.onload = function() {
+                const typedarray = new Uint8Array(this.result);
+                
+                showStatus('Processing document...', 'success', poUploadStatus);
+                
+                pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+                    pdfDocument = pdf;
+                    showStatus('Document loaded successfully!', 'success', poUploadStatus);
+                    
+                    currentPage = 1;
+                    selectPage = 1;
+                    scale = 1.0;
+                    selectScale = 1.0;
+                    extractedText = [];
+                    detectedFields = {};
+                    allTextItems = [];
+                    
+                    document.getElementById('po-pdf-viewer').innerHTML = '';
+                    document.getElementById('po-pdf-select-viewer').innerHTML = '';
+                    document.getElementById('po-fields-content').innerHTML = '';
+                    document.getElementById('po-items-container').innerHTML = '';
+                    document.getElementById('po-custom-fields-container').innerHTML = '';
+                    document.getElementById('po-extracted-text-content').innerHTML = '';
+                    
+                    renderPage(currentPage, 'po-viewer');
+                    renderPage(selectPage, 'po-select');
+                    
+                    extractTextFromPDF(pdf, true);
+                    
+                    updatePageInfo('po-viewer');
+                    updatePageInfo('po-select');
+                    updateZoomDisplay();
+                }).catch(function(error) {
+                    showStatus('Error loading PDF: ' + error.message, 'error', poUploadStatus);
+                });
+            };
+            
+            fileReader.readAsArrayBuffer(file);
+        }
+        
+        // Handle file attachments
+        function handleFileAttachments(e) {
+            const files = e.target.files;
+            attachmentsList.innerHTML = '';
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+                    showStatus(`File type not allowed: ${file.name}`, 'error', uploadStatus);
+                    continue;
+                }
+                
+                if (file.size > MAX_FILE_SIZE) {
+                    showStatus(`File too large (max 5MB): ${file.name}`, 'error', uploadStatus);
+                    continue;
+                }
+                
+                const fileItem = document.createElement('div');
+                fileItem.className = 'attachment-item';
+                fileItem.innerHTML = `
+                    <span>${file.name}</span>
+                    <button type="button" class="remove-attachment" data-index="${i}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                attachmentsList.appendChild(fileItem);
+            }
+            
+            // Add remove attachment handlers
+            document.querySelectorAll('.remove-attachment').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const index = parseInt(this.dataset.index);
+                    const files = document.getElementById('file-attachments').files;
+                    const newFiles = Array.from(files).filter((_, i) => i !== index);
+                    
+                    // Create new FileList (simulated)
+                    const dataTransfer = new DataTransfer();
+                    newFiles.forEach(file => dataTransfer.items.add(file));
+                    document.getElementById('file-attachments').files = dataTransfer.files;
+                    
+                    // Update display
+                    this.parentElement.remove();
+                });
+            });
+        }
+        
         // Render PDF page with selectable text layer
         function renderPage(pageNum, type = 'viewer') {
             if (!pdfDocument) return;
             
-            const viewerId = type === 'viewer' ? 'pdf-viewer' : 'pdf-select-viewer';
-            const currentScale = type === 'viewer' ? scale : selectScale;
+            const viewerId = type.includes('po') ? 
+                (type.includes('select') ? 'po-pdf-select-viewer' : 'po-pdf-viewer') : 
+                (type.includes('select') ? 'pdf-select-viewer' : 'pdf-viewer');
+                
+            const currentScale = type.includes('po') ? 
+                (type.includes('select') ? selectScale : scale) : 
+                (type.includes('select') ? selectScale : scale);
             
             pdfDocument.getPage(pageNum).then(function(page) {
                 const viewport = page.getViewport({ scale: currentScale });
@@ -1379,24 +2021,20 @@
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
                 
-                // Clear previous content
                 const viewer = document.getElementById(viewerId);
                 viewer.innerHTML = '';
                 viewer.appendChild(canvas);
                 
-                // Render PDF page
                 const renderContext = {
                     canvasContext: context,
                     viewport: viewport
                 };
                 
                 page.render(renderContext).promise.then(function() {
-                    // Create text layer for selection
                     return page.getTextContent().then(function(textContent) {
                         const textLayerDiv = document.createElement('div');
                         textLayerDiv.className = 'text-layer';
                         
-                        // Create text layer divs
                         pdfjsLib.renderTextLayer({
                             textContent: textContent,
                             container: textLayerDiv,
@@ -1406,13 +2044,12 @@
                         
                         viewer.appendChild(textLayerDiv);
                         
-                        if (type === 'select') {
+                        if (type.includes('select')) {
                             selectTextLayer = textLayerDiv;
                         } else {
                             textLayer = textLayerDiv;
                         }
                         
-                        // Make text selectable and draggable
                         const textSpans = textLayerDiv.querySelectorAll('span');
                         textSpans.forEach(span => {
                             span.draggable = true;
@@ -1436,7 +2073,7 @@
         }
         
         // Extract text from PDF
-        function extractTextFromPDF(pdf) {
+        function extractTextFromPDF(pdf, isPo = false) {
             extractedText = [];
             detectedFields = {};
             allTextItems = [];
@@ -1462,11 +2099,9 @@
                                     });
                                     allTextItems.push(text);
                                     
-                                    // Create formatted text with spans for selection
                                     formattedText += `<span draggable="true">${text}</span> `;
                                 }
                                 
-                                // Add line breaks based on y-position changes
                                 if (textItem.hasEOL) {
                                     formattedText += '\n';
                                 }
@@ -1479,8 +2114,7 @@
                                 items: pageItems
                             });
                             
-                            // Detect fields in this page's text
-                            detectFields(pageText, pageItems);
+                            detectFields(pageText, pageItems, isPo);
                         });
                     })
                 );
@@ -1489,33 +2123,35 @@
             Promise.all(promises).then(function() {
                 console.log('Text extraction complete');
                 
-                // Display extracted text
-                displayExtractedText();
-                
-                // Display detected fields
-                displayDetectedFields();
-                
-                // Auto-fill form
-                autoFillForm();
+                if (isPo) {
+                    displayExtractedText(true);
+                    displayDetectedFields(true);
+                    autoFillPoForm();
+                } else {
+                    displayExtractedText();
+                    displayDetectedFields();
+                    autoFillForm();
+                }
             });
         }
         
         // Display extracted text with formatting
-        function displayExtractedText() {
-            extractedTextContent.innerHTML = '';
+        function displayExtractedText(isPo = false) {
+            const contentId = isPo ? 'po-extracted-text-content' : 'extracted-text-content';
+            const contentElement = document.getElementById(contentId);
+            contentElement.innerHTML = '';
             
             extractedText.forEach(page => {
                 const pageHeader = document.createElement('div');
                 pageHeader.style.fontWeight = 'bold';
                 pageHeader.style.margin = '10px 0 5px 0';
                 pageHeader.textContent = `Page ${page.page}:`;
-                extractedTextContent.appendChild(pageHeader);
+                contentElement.appendChild(pageHeader);
                 
                 const pageContent = document.createElement('div');
                 pageContent.innerHTML = page.formattedText;
-                extractedTextContent.appendChild(pageContent);
+                contentElement.appendChild(pageContent);
                 
-                // Add drag events to the spans
                 pageContent.querySelectorAll('span').forEach(span => {
                     span.addEventListener('dragstart', function(e) {
                         e.dataTransfer.setData('text/plain', this.textContent);
@@ -1534,17 +2170,20 @@
         }
         
         // Detect fields in text
-        function detectFields(text, textItems) {
-            // Common field patterns
-            const fieldPatterns = {
+        function detectFields(text, textItems, isPo = false) {
+            const fieldPatterns = isPo ? {
+                'po-number': /(PO\s*Number|Purchase\s*Order|Order\s*No\.?)\s*[:#]?\s*([A-Z0-9-]+)/i,
+                'po-date': /(PO\s*Date|Date\s*of\s*Order|Date)\s*[:]?\s*((\d{1,2}[\/\-\s](\d{1,2}|[A-Za-z]+)[\/\-\s]\d{2,4})|([A-Za-z]+[\/\-\s]\d{1,2}[\/\-\s]\d{2,4})|(\d{1,2}\s+[A-Za-z]+\s+\d{2,4}))/i,
+                'total-amount': /(Total\s*Amount|Amount\s*Due|Grand\s*Total|Total)\s*[:]?\s*([$\u20AC\u00A3¥₹]?\s*[\d,]+\.?\d*)/i,
+                'vendor-info': /From:\s*([\s\S]*?)(?=To:)/i
+            } : {
                 'invoice-number': /(Invoice\s*Number|Order\s*ID|Invoice\s*Details|Invoice\s*No\.?)\s*[:#]?\s*([A-Z0-9\-\/]+)/i,
                 'po-number': /(PO\s*Number|Purchase\s*Order|Order\s*No\.?)\s*[:#]?\s*([A-Z0-9-]+)/i,
                 'invoice-date': /(Invoice\s*Date|Date\s*of\s*Invoice|Date)\s*[:]?\s*((\d{1,2}[\/\-\s](\d{1,2}|[A-Za-z]+)[\/\-\s]\d{2,4})|([A-Za-z]+[\/\-\s]\d{1,2}[\/\-\s]\d{2,4})|(\d{1,2}\s+[A-Za-z]+\s+\d{2,4}))/i,
                 'total-amount': /(Total\s*Amount|Amount\s*Due|Grand\s*Total|Total)\s*[:]?\s*([$\u20AC\u00A3¥₹]?\s*[\d,]+\.?\d*)/i,
                 'vendor-info': /From:\s*([\s\S]*?)(?=To:)/i
             };
-
-            // Enhanced payment terms detection
+    
             if (!detectedFields['payment-terms']) {
                 const paymentTermsMatch = text.match(/(?:Payment\s*Terms)\s*[:]?\s*(Net\s*15)/i);
                 if (paymentTermsMatch) {
@@ -1554,7 +2193,6 @@
                         rawText: paymentTermsMatch[0]
                     };
                 } else {
-                    // Fallback to finding payment terms in the footer
                     const paymentFooterMatch = text.match(/Please\s*make\s*payment\s*within\s*(\d+)\s*days/i);
                     if (paymentFooterMatch) {
                         detectedFields['payment-terms'] = {
@@ -1565,23 +2203,20 @@
                     }
                 }
             }
-
-            // Enhanced invoice date detection - standalone if not found with label
-            if (!detectedFields['invoice-date']) {
-                // Comprehensive date pattern matching
+    
+            if (!detectedFields[isPo ? 'po-date' : 'invoice-date']) {
                 const datePattern = /(\d{1,2}[\/\-\s](\d{1,2}|[A-Za-z]+)[\/\-\s]\d{2,4})|([A-Za-z]+[\/\-\s]\d{1,2}[\/\-\s]\d{2,4})|(\d{1,2}\s+[A-Za-z]+\s+\d{2,4})/i;
                 const dateMatch = text.match(datePattern);
                 
                 if (dateMatch) {
-                    detectedFields['invoice-date'] = {
+                    detectedFields[isPo ? 'po-date' : 'invoice-date'] = {
                         value: dateMatch[0].trim(),
                         confidence: 'medium',
                         rawText: dateMatch[0]
                     };
                 }
             }
-
-            // Detect table data with improved pattern
+    
             const tablePattern = /Description\s*Quantity\s*Unit\s*Price\s*Total[\s\S]*?(?=Subtotal|Total|GST)/i;
             const tableMatch = text.match(tablePattern);
             if (tableMatch) {
@@ -1592,7 +2227,6 @@
                 };
             }
             
-            // Check for each field pattern
             for (const [field, pattern] of Object.entries(fieldPatterns)) {
                 const match = text.match(pattern);
                 if (match && !detectedFields[field]) {
@@ -1604,7 +2238,6 @@
                 }
             }
             
-            // Additional vendor info detection
             if (!detectedFields['vendor-info']) {
                 const vendorMatch = text.match(/(?:From|Supplier|Vendor):\s*([\s\S]*?)(?:\n\s*\n|\n\s*[A-Z][a-z])/i);
                 if (vendorMatch) {
@@ -1631,7 +2264,6 @@
                     element.value = data.value;
                 }
                 
-                // Highlight the drop area to show it was auto-filled
                 const dropArea = document.getElementById(`${field}-drop`);
                 if (dropArea) {
                     dropArea.classList.add('field-match');
@@ -1640,10 +2272,38 @@
                     }, 2000);
                 }
             }
-
-            // Update amount details if total amount was detected
+    
             if (detectedFields['total-amount']) {
                 updateAmountDetails();
+            }
+        }
+        
+        // Auto-fill PO form with detected fields
+        function autoFillPoForm() {
+            for (const [field, data] of Object.entries(detectedFields)) {
+                const poField = field.replace('invoice-', 'po-').replace('date', 'po-date');
+                const element = document.getElementById(poField);
+                if (!element) continue;
+                
+                if (field === 'invoice-items') {
+                    parsePoTableData(data.rawText);
+                } else if (field.endsWith('-date')) {
+                    element.value = normalizeDate(data.value);
+                } else {
+                    element.value = data.value;
+                }
+                
+                const dropArea = document.getElementById(`${poField}-drop`);
+                if (dropArea) {
+                    dropArea.classList.add('field-match');
+                    setTimeout(() => {
+                        dropArea.classList.remove('field-match');
+                    }, 2000);
+                }
+            }
+    
+            if (detectedFields['total-amount']) {
+                updatePoAmountDetails();
             }
         }
         
@@ -1651,7 +2311,6 @@
         function parseTableData(text) {
             const lines = text.split('\n').filter(line => line.trim() !== '');
             
-            // Find the table data section
             let startIndex = lines.findIndex(line => 
                 line.includes('Description') && 
                 line.includes('Quantity') && 
@@ -1661,20 +2320,50 @@
             
             if (startIndex === -1) return;
             
-            // Process each line after the header
             for (let i = startIndex + 1; i < lines.length; i++) {
                 const line = lines[i];
                 
-                // Skip lines that look like headers or totals
                 if (line.match(/Description|Quantity|Unit Price|Total|Subtotal|GST|Total Amount/i)) {
                     continue;
                 }
                 
-                // Split by multiple spaces (simple approach)
                 const parts = line.split(/\s{2,}/).filter(part => part.trim() !== '');
                 
                 if (parts.length >= 4) {
                     addInvoiceItem({
+                        description: parts[0].trim(),
+                        quantity: parts[1].trim(),
+                        unitPrice: parts[2].trim(),
+                        total: parts[3].trim()
+                    });
+                }
+            }
+        }
+        
+        // Parse PO table data
+        function parsePoTableData(text) {
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            
+            let startIndex = lines.findIndex(line => 
+                line.includes('Description') && 
+                line.includes('Quantity') && 
+                line.includes('Unit Price') && 
+                line.includes('Total')
+            );
+            
+            if (startIndex === -1) return;
+            
+            for (let i = startIndex + 1; i < lines.length; i++) {
+                const line = lines[i];
+                
+                if (line.match(/Description|Quantity|Unit Price|Total|Subtotal|GST|Total Amount/i)) {
+                    continue;
+                }
+                
+                const parts = line.split(/\s{2,}/).filter(part => part.trim() !== '');
+                
+                if (parts.length >= 4) {
+                    addPoItem({
                         description: parts[0].trim(),
                         quantity: parts[1].trim(),
                         unitPrice: parts[2].trim(),
@@ -1710,12 +2399,10 @@
                 <button type="button" class="remove-item-btn"><i class="fas fa-times"></i></button>
             `;
             
-            // Add remove button handler
             itemDiv.querySelector('.remove-item-btn').addEventListener('click', function() {
                 itemDiv.remove();
             });
             
-            // Make inputs draggable targets
             itemDiv.querySelectorAll('input').forEach(input => {
                 input.addEventListener('dragover', function(e) {
                     e.preventDefault();
@@ -1734,8 +2421,7 @@
                         this.value = text;
                     }
                 });
-
-                // Right-click to edit
+    
                 input.addEventListener('contextmenu', function(e) {
                     e.preventDefault();
                     showContextMenu(e, this);
@@ -1744,7 +2430,65 @@
             
             container.appendChild(itemDiv);
         }
-
+        
+        // Add a PO item card
+        function addPoItem(data = {}) {
+            const container = document.getElementById('po-items-container');
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'item-card';
+            
+            itemDiv.innerHTML = `
+                <div class="item-field">
+                    <label>Description</label>
+                    <input type="text" value="${data.description || ''}" class="item-description" readonly>
+                </div>
+                <div class="item-field">
+                    <label>Quantity</label>
+                    <input type="text" value="${data.quantity || ''}" class="item-quantity" readonly>
+                </div>
+                <div class="item-field">
+                    <label>Unit Price</label>
+                    <input type="text" value="${data.unitPrice || ''}" class="item-unit-price" readonly>
+                </div>
+                <div class="item-field">
+                    <label>Total</label>
+                    <input type="text" value="${data.total || ''}" class="item-total" readonly>
+                </div>
+                <button type="button" class="remove-item-btn"><i class="fas fa-times"></i></button>
+            `;
+            
+            itemDiv.querySelector('.remove-item-btn').addEventListener('click', function() {
+                itemDiv.remove();
+            });
+            
+            itemDiv.querySelectorAll('input').forEach(input => {
+                input.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    this.parentElement.style.backgroundColor = 'rgba(52, 152, 219, 0.1)';
+                });
+                
+                input.addEventListener('dragleave', function() {
+                    this.parentElement.style.backgroundColor = '';
+                });
+                
+                input.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    this.parentElement.style.backgroundColor = '';
+                    const text = e.dataTransfer.getData('text/plain');
+                    if (text) {
+                        this.value = text;
+                    }
+                });
+    
+                input.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    showContextMenu(e, this);
+                });
+            });
+            
+            container.appendChild(itemDiv);
+        }
+    
         // Add a custom field
         function addCustomField() {
             const fieldName = document.getElementById('field-name').value.trim();
@@ -1752,8 +2496,11 @@
                 showStatus('Field name is required', 'error', document.getElementById('field-status'));
                 return;
             }
-
-            const container = document.getElementById('custom-fields-container');
+    
+            const container = currentDocumentType === 'Invoice' ? 
+                document.getElementById('custom-fields-container') : 
+                document.getElementById('po-custom-fields-container');
+                
             const fieldId = `custom-${fieldName.toLowerCase().replace(/\s+/g, '-')}`;
             
             const fieldDiv = document.createElement('div');
@@ -1766,17 +2513,15 @@
                     <span class="edit-hint">Right-click to edit</span>
                 </div>
             `;
-
-            // Add right-click context menu to the input
+    
             const input = fieldDiv.querySelector('input');
             input.addEventListener('contextmenu', function(e) {
                 e.preventDefault();
                 showContextMenu(e, this);
             });
-
+    
             container.appendChild(fieldDiv);
             
-            // Close modal and reset field name
             document.getElementById('field-name').value = '';
             document.getElementById('add-field-modal').style.display = 'none';
         }
@@ -1785,7 +2530,6 @@
         function normalizeDate(dateStr) {
             if (!dateStr) return '';
             
-            // Try to parse with moment.js which handles many formats
             const formats = [
                 'DD/MM/YYYY', 'DD-MM-YYYY', 'DD.MM.YYYY',
                 'MM/DD/YYYY', 'MM-DD-YYYY', 'MM.DD.YYYY',
@@ -1799,12 +2543,10 @@
                 return date.format('YYYY-MM-DD');
             }
             
-            // Fallback to simple parsing if moment fails
             const parts = dateStr.split(/[\/\-\s,]/).filter(part => part.trim() !== '');
             if (parts.length === 3) {
                 let day, month, year;
                 
-                // Try to parse month name
                 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
                                     'July', 'August', 'September', 'October', 'November', 'December'];
                 const shortMonthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -1814,53 +2556,39 @@
                                   shortMonthNames.findIndex(m => dateStr.includes(m)) + 1;
                 
                 if (monthIndex > 0) {
-                    // Format with month name (e.g., 12 April 2023 or April 12, 2023)
                     const monthStr = monthIndex.toString().padStart(2, '0');
                     
                     if (dateStr.includes(',')) {
-                        // Format like "April 12, 2023"
                         day = parts[1].padStart(2, '0');
                         year = parts[2];
                     } else {
-                        // Format like "12 April 2023"
                         day = parts[0].padStart(2, '0');
                         year = parts[2];
                     }
                     
                     return `${year}-${monthStr}-${day}`;
                 } else {
-                    // Numeric date formats
-                    if (parts[0].length === 4) {
-                        // YYYY-MM-DD format
-                        return dateStr;
-                    } else if (parts[2].length === 2) {
-                        // DD-MM-YY format
-                        parts[2] = '20' + parts[2];
-                    }
-                    
-                    // Assume DD-MM-YYYY or MM-DD-YYYY based on which makes sense
                     const dayPart = parseInt(parts[0]);
                     const monthPart = parseInt(parts[1]);
                     
                     if (dayPart > 12) {
-                        // Clearly DD-MM-YYYY (e.g., 25-12-2023)
                         return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                     } else if (monthPart > 12) {
-                        // Clearly MM-DD-YYYY (though unusual)
                         return `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
                     } else {
-                        // Ambiguous, default to MM-DD-YYYY (US format)
                         return `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
                     }
                 }
             }
             
-            return dateStr; // Return as-is if we can't parse it
+            return dateStr;
         }
         
         // Display detected fields
-        function displayDetectedFields() {
-            const fieldsContent = document.getElementById('fields-content');
+        function displayDetectedFields(isPo = false) {
+            const fieldsContent = isPo ? 
+                document.getElementById('po-fields-content') : 
+                document.getElementById('fields-content');
             fieldsContent.innerHTML = '';
             
             if (Object.keys(detectedFields).length === 0) {
@@ -1900,54 +2628,85 @@
             
             fieldsContent.appendChild(fieldsList);
         }
-
+    
         // Update amount details based on total amount
         function updateAmountDetails() {
             const totalAmount = parseCurrency(document.getElementById('total-amount').value);
             
             if (isNaN(totalAmount)) {
                 document.getElementById('subtotal-amount').textContent = '$0.00';
+                document.getElementById('cgst-amount').textContent = '$0.00';
+                document.getElementById('sgst-amount').textContent = '$0.00';
                 document.getElementById('gst-amount').textContent = '$0.00';
                 document.getElementById('grand-total-amount').textContent = '$0.00';
                 return;
             }
-
-            const subtotal = totalAmount / (1+ (gstRate/100));
+    
+            const subtotal = totalAmount / (1 + (gstRate/100));
             const gstAmount = totalAmount - subtotal;
-
+            const cgstAmount = gstAmount / 2;
+            const sgstAmount = gstAmount / 2;
+    
             document.getElementById('subtotal-amount').textContent = formatCurrency(subtotal);
+            document.getElementById('cgst-amount').textContent = formatCurrency(cgstAmount);
+            document.getElementById('sgst-amount').textContent = formatCurrency(sgstAmount);
             document.getElementById('gst-amount').textContent = formatCurrency(gstAmount);
             document.getElementById('grand-total-amount').textContent = formatCurrency(totalAmount);
         }
         
+        // Update PO amount details
+        function updatePoAmountDetails() {
+            const totalAmount = parseCurrency(document.getElementById('po-total-amount').value);
+            
+            if (isNaN(totalAmount)) {
+                document.getElementById('po-subtotal-amount').textContent = '$0.00';
+                document.getElementById('po-cgst-amount').textContent = '$0.00';
+                document.getElementById('po-sgst-amount').textContent = '$0.00';
+                document.getElementById('po-gst-amount').textContent = '$0.00';
+                document.getElementById('po-grand-total-amount').textContent = '$0.00';
+                return;
+            }
+    
+            const subtotal = totalAmount / (1 + (gstRate/100));
+            const gstAmount = totalAmount - subtotal;
+            const cgstAmount = gstAmount / 2;
+            const sgstAmount = gstAmount / 2;
+    
+            document.getElementById('po-subtotal-amount').textContent = formatCurrency(subtotal);
+            document.getElementById('po-cgst-amount').textContent = formatCurrency(cgstAmount);
+            document.getElementById('po-sgst-amount').textContent = formatCurrency(sgstAmount);
+            document.getElementById('po-gst-amount').textContent = formatCurrency(gstAmount);
+            document.getElementById('po-grand-total-amount').textContent = formatCurrency(totalAmount);
+        }
+        
         // Zoom functions
         function zoomIn(type) {
-            if (type === 'viewer') {
+            if (type === 'viewer' || type === 'po-viewer') {
                 if (scale < 3.0) {
                     scale += 0.25;
-                    renderPage(currentPage, 'viewer');
+                    renderPage(currentPage, type);
                     updateZoomDisplay();
                 }
             } else {
                 if (selectScale < 3.0) {
                     selectScale += 0.25;
-                    renderPage(selectPage, 'select');
+                    renderPage(selectPage, type);
                     updateZoomDisplay();
                 }
             }
         }
         
         function zoomOut(type) {
-            if (type === 'viewer') {
+            if (type === 'viewer' || type === 'po-viewer') {
                 if (scale > 0.5) {
                     scale -= 0.25;
-                    renderPage(currentPage, 'viewer');
+                    renderPage(currentPage, type);
                     updateZoomDisplay();
                 }
             } else {
                 if (selectScale > 0.5) {
                     selectScale -= 0.25;
-                    renderPage(selectPage, 'select');
+                    renderPage(selectPage, type);
                     updateZoomDisplay();
                 }
             }
@@ -1956,37 +2715,39 @@
         function updateZoomDisplay() {
             zoomLevel.textContent = `${Math.round(scale * 100)}%`;
             selectZoomLevel.textContent = `${Math.round(selectScale * 100)}%`;
+            document.getElementById('po-zoom-level').textContent = `${Math.round(scale * 100)}%`;
+            document.getElementById('po-select-zoom-level').textContent = `${Math.round(selectScale * 100)}%`;
         }
         
         // Page navigation
         function goToPrevPage(type) {
-            if (type === 'viewer') {
+            if (type === 'viewer' || type === 'po-viewer') {
                 if (currentPage > 1) {
                     currentPage--;
-                    renderPage(currentPage, 'viewer');
-                    updatePageInfo('viewer');
+                    renderPage(currentPage, type);
+                    updatePageInfo(type);
                 }
             } else {
                 if (selectPage > 1) {
                     selectPage--;
-                    renderPage(selectPage, 'select');
-                    updatePageInfo('select');
+                    renderPage(selectPage, type);
+                    updatePageInfo(type);
                 }
             }
         }
         
         function goToNextPage(type) {
-            if (type === 'viewer') {
+            if (type === 'viewer' || type === 'po-viewer') {
                 if (pdfDocument && currentPage < pdfDocument.numPages) {
                     currentPage++;
-                    renderPage(currentPage, 'viewer');
-                    updatePageInfo('viewer');
+                    renderPage(currentPage, type);
+                    updatePageInfo(type);
                 }
             } else {
                 if (pdfDocument && selectPage < pdfDocument.numPages) {
                     selectPage++;
-                    renderPage(selectPage, 'select');
-                    updatePageInfo('select');
+                    renderPage(selectPage, type);
+                    updatePageInfo(type);
                 }
             }
         }
@@ -1997,72 +2758,59 @@
                 if (type === 'viewer') {
                     document.getElementById('page-info').textContent = 
                         `Page ${currentPage} of ${pdfDocument.numPages}`;
-                } else {
+                } else if (type === 'select') {
                     document.getElementById('select-page-info').textContent = 
+                        `Page ${selectPage} of ${pdfDocument.numPages}`;
+                } else if (type === 'po-viewer') {
+                    document.getElementById('po-page-info').textContent = 
+                        `Page ${currentPage} of ${pdfDocument.numPages}`;
+                } else if (type === 'po-select') {
+                    document.getElementById('po-select-page-info').textContent = 
                         `Page ${selectPage} of ${pdfDocument.numPages}`;
                 }
             }
         }
 
-        // Render page in document modal
-        function renderModalPage(pageNum) {
-            if (!currentPdfFile) return;
+        // Save document (invoice or PO) to database
+        function saveDocument() {
+            const isInvoice = currentDocumentType === 'Invoice';
+            const form = isInvoice ? document.getElementById('invoice-form') : document.getElementById('po-form');
+            const formStatusElement = isInvoice ? formStatus : document.getElementById('po-form-status');
+            const approvalType = document.querySelector(`input[name="${isInvoice ? 'approval-type' : 'po-approval-type'}"]:checked`).value;
             
-            currentPdfFile.getPage(pageNum).then(function(page) {
-                const viewport = page.getViewport({ scale: modalScale });
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-                
-                // Clear previous content
-                const viewer = document.getElementById('modal-pdf-viewer');
-                viewer.innerHTML = '';
-                viewer.appendChild(canvas);
-                
-                // Render PDF page
-                const renderContext = {
-                    canvasContext: context,
-                    viewport: viewport
-                };
-                
-                page.render(renderContext);
-            });
-        }
-
-        // Update modal page info
-        function updateModalPageInfo() {
-            if (currentPdfFile) {
-                document.getElementById('modal-page-info').textContent = 
-                    `Page ${modalCurrentPage} of ${currentPdfFile.numPages}`;
-            }
-        }
-        
-        // Save invoice to database
-        function saveInvoice() {
-            // Validate form
-            const invoiceNumber = document.getElementById('invoice-number').value;
-            const totalAmount = document.getElementById('total-amount').value;
-            
-            if (!invoiceNumber || !totalAmount) {
-                showStatus('Invoice Number and Total Amount are required fields', 'error', formStatus);
+            // Validate required fields
+            if (isInvoice && !document.getElementById('invoice-number').value) {
+                showStatus('Invoice Number is required', 'error', formStatusElement);
                 return;
             }
             
-            // Collect form data
-            const formData = {
-                invoiceNumber: invoiceNumber,
-                poNumber: document.getElementById('po-number').value,
-                invoiceDate: document.getElementById('invoice-date').value,
-                paymentTerms: document.getElementById('payment-terms').value,
-                totalAmount: totalAmount,
-                vendorInfo: document.getElementById('vendor-info').value,
-                items: [],
-                customFields: {}
-            };
+            if (!document.getElementById(isInvoice ? 'total-amount' : 'po-total-amount').value) {
+                showStatus('Total Amount is required', 'error', formStatusElement);
+                return;
+            }
             
-            // Collect invoice items
-            document.querySelectorAll('.item-card').forEach(item => {
+            if (isInvoice && fileAttachments.files.length === 0) {
+                showStatus('At least one attachment is required for invoices', 'error', formStatusElement);
+                return;
+            }
+
+            // Prepare form data
+            const formData = {
+                documentType: currentDocumentType,
+                invoiceNumber: isInvoice ? document.getElementById('invoice-number').value : null,
+                poNumber: isInvoice ? document.getElementById('po-number').value : document.getElementById('po-po-number').value,
+                invoiceDate: isInvoice ? document.getElementById('invoice-date').value : document.getElementById('po-po-date').value,
+                paymentTerms: isInvoice ? document.getElementById('payment-terms').value : document.getElementById('po-payment-terms').value,
+                totalAmount: isInvoice ? document.getElementById('total-amount').value : document.getElementById('po-total-amount').value,
+                vendorInfo: isInvoice ? document.getElementById('vendor-info').value : document.getElementById('po-vendor-info').value,
+                items: [],
+                customFields: {},
+                approvalType: approvalType, // Use the selected approval type
+                gstRate: gstRate
+            };
+
+            // Add items
+            document.querySelectorAll(isInvoice ? '.item-card' : '#po-items-container .item-card').forEach(item => {
                 formData.items.push({
                     description: item.querySelector('.item-description').value,
                     quantity: item.querySelector('.item-quantity').value,
@@ -2070,44 +2818,95 @@
                     total: item.querySelector('.item-total').value
                 });
             });
-
-            // Collect custom fields
-            document.querySelectorAll('#custom-fields-container .form-group').forEach(field => {
+    
+            // Add custom fields
+            document.querySelectorAll(isInvoice ? '#custom-fields-container .form-group' : '#po-custom-fields-container .form-group').forEach(field => {
                 const label = field.querySelector('label');
                 const input = field.querySelector('input');
                 if (label && input) {
                     formData.customFields[label.textContent] = input.value;
                 }
             });
-
-            // Add amount details
-            formData.subtotal = document.getElementById('subtotal-amount').textContent;
-            formData.gstAmount = document.getElementById('gst-amount').textContent;
-            formData.gstRate = gstRate;
+    
+            // Calculate amounts
+            const totalAmountNum = parseCurrency(formData.totalAmount);
+            const gstAmount = totalAmountNum * (gstRate / 100);
+            const subtotal = totalAmountNum - gstAmount;
             
-            // Get document data if available
-            if (pdfUpload.files.length > 0) {
-                const fileReader = new FileReader();
-                fileReader.onload = function() {
-                    const arrayBuffer = this.result;
-                    const uint8Array = new Uint8Array(arrayBuffer);
-                    const base64String = btoa(String.fromCharCode.apply(null, uint8Array));
-                    formData.documentData = base64String;
-                    sendInvoiceData(formData);
-                };
-                fileReader.readAsArrayBuffer(pdfUpload.files[0]);
+            formData.subtotal = formatCurrency(subtotal);
+            formData.cgstAmount = formatCurrency(gstAmount / 2);
+            formData.sgstAmount = formatCurrency(gstAmount / 2);
+            formData.gstAmount = formatCurrency(gstAmount);
+            
+            // Handle file uploads
+            if (isInvoice) {
+                if (pdfUpload.files.length > 0) {
+                    const fileReader = new FileReader();
+                    fileReader.onload = function() {
+                        const arrayBuffer = this.result;
+                        const uint8Array = new Uint8Array(arrayBuffer);
+                        const base64String = btoa(String.fromCharCode.apply(null, uint8Array));
+                        formData.documentData = base64String;
+                        
+                        // Handle attachments
+                        if (fileAttachments.files.length > 0) {
+                            const attachments = [];
+                            const fileReaders = Array.from(fileAttachments.files).map(file => {
+                                return new Promise((resolve) => {
+                                    const reader = new FileReader();
+                                    reader.onload = function() {
+                                        const arrayBuffer = this.result;
+                                        const uint8Array = new Uint8Array(arrayBuffer);
+                                        const base64String = btoa(String.fromCharCode.apply(null, uint8Array));
+                                        attachments.push({
+                                            name: file.name,
+                                            type: file.type,
+                                            data: base64String
+                                        });
+                                        resolve();
+                                    };
+                                    reader.readAsArrayBuffer(file);
+                                });
+                            });
+                            
+                            Promise.all(fileReaders).then(() => {
+                                formData.attachments = attachments;
+                                sendDocumentData(formData, formStatusElement);
+                            });
+                        } else {
+                            sendDocumentData(formData, formStatusElement);
+                        }
+                    };
+                    fileReader.readAsArrayBuffer(pdfUpload.files[0]);
+                } else {
+                    sendDocumentData(formData, formStatusElement);
+                }
             } else {
-                sendInvoiceData(formData);
+                // For POs
+                if (poPdfUpload.files.length > 0) {
+                    const fileReader = new FileReader();
+                    fileReader.onload = function() {
+                        const arrayBuffer = this.result;
+                        const uint8Array = new Uint8Array(arrayBuffer);
+                        const base64String = btoa(String.fromCharCode.apply(null, uint8Array));
+                        formData.documentData = base64String;
+                        sendDocumentData(formData, formStatusElement);
+                    };
+                    fileReader.readAsArrayBuffer(poPdfUpload.files[0]);
+                } else {
+                    sendDocumentData(formData, formStatusElement);
+                }
             }
         }
-
-        // Send invoice data to server
-        function sendInvoiceData(formData) {
-            // Show loading state
+    
+        // Send document data to server
+        function sendDocumentData(formData, statusElement) {
             showLoading(true);
+            const saveBtn = formData.documentType === 'Invoice' ? 
+                document.getElementById('save-btn') : 
+                document.getElementById('po-save-btn');
             saveBtn.disabled = true;
             
-            // Send data to server
             fetch('/api/invoices', {
                 method: 'POST',
                 headers: {
@@ -2123,17 +2922,19 @@
             })
             .then(data => {
                 if (data.success) {
-                    showStatus('Invoice saved successfully and sent for approval!', 'success', formStatus);
+                    showStatus(`${formData.documentType} saved successfully and sent for approval!`, 'success', statusElement);
                     resetForm();
-                    loadInvoices();
+                    if (invoicesTable) {
+                        invoicesTable.ajax.reload();
+                    }
                     showSection('#invoices-section');
                 } else {
-                    throw new Error(data.error || 'Failed to save invoice');
+                    throw new Error(data.error || `Failed to save ${formData.documentType}`);
                 }
             })
             .catch(error => {
-                console.error('Error saving invoice:', error);
-                showStatus('Error saving invoice: ' + error.message, 'error', formStatus);
+                console.error(`Error saving ${formData.documentType}:`, error);
+                showStatus(`Error saving ${formData.documentType}: ` + error.message, 'error', statusElement);
             })
             .finally(() => {
                 showLoading(false);
@@ -2143,31 +2944,59 @@
         
         // Reset form
         function resetForm() {
-            document.getElementById('invoice-form').reset();
-            document.getElementById('invoice-items-container').innerHTML = '';
-            document.getElementById('custom-fields-container').innerHTML = '';
-            document.getElementById('current-filename').textContent = 'None';
-            documentInfo.style.display = 'none';
+            if (currentDocumentType === 'Invoice') {
+                document.getElementById('invoice-form').reset();
+                document.getElementById('invoice-items-container').innerHTML = '';
+                document.getElementById('custom-fields-container').innerHTML = '';
+                document.getElementById('current-filename').textContent = 'None';
+                documentInfo.style.display = 'none';
+                
+                document.getElementById('subtotal-amount').textContent = '$0.00';
+                document.getElementById('cgst-amount').textContent = '$0.00';
+                document.getElementById('sgst-amount').textContent = '$0.00';
+                document.getElementById('gst-amount').textContent = '$0.00';
+                document.getElementById('grand-total-amount').textContent = '$0.00';
+                
+                document.getElementById('file-attachments').value = '';
+                document.getElementById('attachments-list').innerHTML = '';
+            } else {
+                document.getElementById('po-form').reset();
+                document.getElementById('po-items-container').innerHTML = '';
+                document.getElementById('po-custom-fields-container').innerHTML = '';
+                document.getElementById('po-current-filename').textContent = 'None';
+                poDocumentInfo.style.display = 'none';
+                
+                document.getElementById('po-subtotal-amount').textContent = '$0.00';
+                document.getElementById('po-cgst-amount').textContent = '$0.00';
+                document.getElementById('po-sgst-amount').textContent = '$0.00';
+                document.getElementById('po-gst-amount').textContent = '$0.00';
+                document.getElementById('po-grand-total-amount').textContent = '$0.00';
+            }
             
-            // Reset amount details
-            document.getElementById('subtotal-amount').textContent = '$0.00';
-            document.getElementById('gst-amount').textContent = '$0.00';
-            document.getElementById('grand-total-amount').textContent = '$0.00';
-            
-            // Clear PDF viewer
             if (pdfDocument) {
-                document.getElementById('pdf-viewer').innerHTML = '';
-                document.getElementById('pdf-select-viewer').innerHTML = '';
+                if (currentDocumentType === 'Invoice') {
+                    document.getElementById('pdf-viewer').innerHTML = '';
+                    document.getElementById('pdf-select-viewer').innerHTML = '';
+                } else {
+                    document.getElementById('po-pdf-viewer').innerHTML = '';
+                    document.getElementById('po-pdf-select-viewer').innerHTML = '';
+                }
                 pdfDocument = null;
             }
             
-            // Reset page info
-            document.getElementById('page-info').textContent = 'Page 1 of 1';
-            document.getElementById('select-page-info').textContent = 'Page 1 of 1';
-            
-            // Clear extracted text and fields
-            document.getElementById('fields-content').innerHTML = '';
-            document.getElementById('extracted-text-content').innerHTML = '';
+            if (currentDocumentType === 'Invoice') {
+                document.getElementById('page-info').textContent = 'Page 1 of 1';
+                document.getElementById('select-page-info').textContent = 'Page 1 of 1';
+                
+                document.getElementById('fields-content').innerHTML = '';
+                document.getElementById('extracted-text-content').innerHTML = '';
+            } else {
+                document.getElementById('po-page-info').textContent = 'Page 1 of 1';
+                document.getElementById('po-select-page-info').textContent = 'Page 1 of 1';
+                
+                document.getElementById('po-fields-content').innerHTML = '';
+                document.getElementById('po-extracted-text-content').innerHTML = '';
+            }
         }
         
         // Show status message
@@ -2175,7 +3004,6 @@
             element.textContent = message;
             element.className = 'status-message ' + type;
             
-            // Auto-hide success messages after 5 seconds
             if (type === 'success') {
                 setTimeout(() => {
                     element.textContent = '';
@@ -2190,113 +3018,68 @@
             spinner.style.display = show ? 'flex' : 'none';
         }
 
-        // Load approver emails
-        function loadApproverEmails() {
-            fetch('/api/settings?setting_type=approver_email')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const container = document.getElementById('approver-emails-container');
-                        container.innerHTML = '';
-                        
-                        data.data.forEach(setting => {
-                            const emailDiv = document.createElement('div');
-                            emailDiv.className = 'approver-email-item';
-                            emailDiv.innerHTML = `
-                                <span>${setting.setting_value}</span>
-                                <button class="btn-action delete-approver" data-id="${setting.id}">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            `;
-                            container.appendChild(emailDiv);
-                        });
-                        
-                        // Add delete event listeners
-                        document.querySelectorAll('.delete-approver').forEach(btn => {
-                            btn.addEventListener('click', function() {
-                                const settingId = this.getAttribute('data-id');
-                                deleteApproverEmail(settingId);
-                            });
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading approver emails:', error);
-                });
-        }
-
-        // Add approver email
-        function addApproverEmail() {
-            const emailInput = document.getElementById('new-approver-email');
-            const email = emailInput.value.trim();
-            
-            if (!email || !email.includes('@')) {
-                alert('Please enter a valid email address');
-                return;
-            }
-            
-            fetch('/api/settings', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    setting_type: 'approver_email',
-                    setting_value: email
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    emailInput.value = '';
-                    loadApproverEmails();
-                } else {
-                    alert('Failed to add approver: ' + (data.error || 'Unknown error'));
+        // Format currency while preserving the original format
+        function formatCurrency(value) {
+            if (typeof value === 'string') {
+                if (/[a-zA-Z$€£¥₹]/.test(value)) {
+                    return value;
                 }
-            })
-            .catch(error => {
-                console.error('Error adding approver:', error);
-                alert('Failed to add approver');
-            });
-        }
-
-        // Delete approver email
-        function deleteApproverEmail(settingId) {
-            if (!confirm('Are you sure you want to remove this approver?')) {
-                return;
+                
+                value = parseFloat(value.replace(/[^0-9.-]/g, ''));
+                if (isNaN(value)) return '$0.00';
             }
             
-            fetch(`/api/settings/${settingId}`, {
-                method: 'DELETE'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    loadApproverEmails();
-                } else {
-                    alert('Failed to remove approver: ' + (data.error || 'Unknown error'));
-                }
-            })
-            .catch(error => {
-                console.error('Error removing approver:', error);
-                alert('Failed to remove approver');
-            });
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(value);
         }
 
-        // Save settings
-        function saveSettings() {
-            const gstRate = parseFloat(document.getElementById('default-gst-rate').value);
+        // Parse currency string to number
+        function parseCurrency(value) {
+            if (!value) return 0;
+            if (typeof value === 'number') return value;
             
-            if (isNaN(gstRate) || gstRate < 0 || gstRate > 100) {
-                alert('Please enter a valid GST rate between 0 and 100');
-                return;
+            const numericValue = parseFloat(value.replace(/[^0-9.-]/g, ''));
+            return isNaN(numericValue) ? 0 : numericValue;
+        }
+
+        // Close modal
+        function closeModal() {
+            this.closest('.modal').style.display = 'none';
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+        const authToken = sessionStorage.getItem('authToken');
+        const userData = JSON.parse(sessionStorage.getItem('userData'));
+        
+        if (!authToken || !userData) {
+            window.location.href = 'login.html';
+        }
+        
+        // Update UI with user info
+        if (userData) {
+            const usernameElement = document.querySelector('.username');
+            const roleElement = document.querySelector('.role');
+            
+            if (usernameElement) {
+                usernameElement.textContent = userData.name || userData.email;
             }
             
-            // In a real app, you would save this to the database
-            // For now, we'll just update the global variable
-            gstRate = gstRate;
-            alert('Settings saved successfully');
+            if (roleElement) {
+                roleElement.textContent = userData.department === 'Admin' ? 'Administrator' : 
+                                         userData.department === 'AP' ? 'AP Team' : 
+                                         userData.department === 'CFO' ? 'CFO' : 
+                                         userData.department === 'Manager' ? 'Manager' : 'User';
+            }
         }
+    });
+    
+    // Logout function
+    function logout() {
+        sessionStorage.removeItem('authToken');
+        sessionStorage.removeItem('userData');
+        window.location.href = 'login.html';
+    }
     </script>
 </body>
 </html>

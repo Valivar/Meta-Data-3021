@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Invoice Processor</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar remains the same -->
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <header>
+                <div class="header-title">
+                    <h1 id="page-title">System Settings</h1>
+                    <p>Configure your invoice processing workflow</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-outline" id="back-to-app-btn">
+                        <i class="fas fa-arrow-left"></i> Back to App
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <section id="settings-section" class="content-section active">
+                    <div class="settings-container">
+                        <div class="settings-header">
+                            <h1><i class="fas fa-cog"></i> System Configuration</h1>
+                            <p class="section-description">Manage approval workflows and system settings</p>
+                        </div>
+
+                        <div class="settings-tabs">
+                            <div class="settings-tab active" data-tab="department-approval">Department Approval</div>
+                            <div class="settings-tab" data-tab="hierarchy-approval">Hierarchy Approval</div>
+                            <div class="settings-tab" data-tab="system-settings">System Settings</div>
+                        </div>
+
+                        <div class="settings-content">
+                            <!-- Department Approval Section -->
+                            <div id="department-approval-tab" class="settings-tab-content active">
+                                <div class="settings-card">
+                                    <h2><i class="fas fa-building"></i> Department Approval</h2>
+                                    <p>Configure approvers for each department (Invoice and PO).</p>
+                                    
+                                    <div class="department-container">
+                                        <div class="department-section">
+                                            <h3><i class="fas fa-file-invoice"></i> Invoice Department</h3>
+                                            <div class="form-group">
+                                                <button class="btn btn-outline add-approver-btn" data-department="invoice">
+                                                    <i class="fas fa-plus"></i> Add AP Approver
+                                                </button>
+                                            </div>
+                                            <div id="invoice-approvers-list" class="approvers-list">
+                                                <!-- Invoice approvers will be loaded here -->
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="department-section">
+                                            <h3><i class="fas fa-file-purchase"></i> PO Department</h3>
+                                            <div class="form-group">
+                                                <button class="btn btn-outline add-approver-btn" data-department="po">
+                                                    <i class="fas fa-plus"></i> Add AP Approver
+                                                </button>
+                                            </div>
+                                            <div id="po-approvers-list" class="approvers-list">
+                                                <!-- PO approvers will be loaded here -->
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="department-section">
+                                            <h3><i class="fas fa-money-check-alt"></i> CFO Approval</h3>
+                                            <div id="cfo-approvers-list" class="approvers-list">
+                                                <!-- CFO approvers will be loaded here -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Hierarchy Approval Section -->
+                            <div id="hierarchy-approval-tab" class="settings-tab-content">
+                                <div class="settings-card">
+                                    <h2><i class="fas fa-sitemap"></i> Hierarchical Approval</h2>
+                                    <p>Set up a multi-level approval hierarchy for your invoices.</p>
+                                    
+                                    <div class="form-group">
+                                        <label for="approval-levels">Number of AP Approval Levels:</label>
+                                        <input type="number" id="approval-levels" min="1" max="10" value="3" class="form-control">
+                                        <button class="btn btn-outline" id="generate-levels-btn">
+                                            Generate Levels
+                                        </button>
+                                    </div>
+                                    
+                                    <div id="hierarchy-levels-container">
+                                        <!-- Dynamic levels will be generated here -->
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <button class="btn btn-primary" id="save-hierarchy-btn">
+                                            <i class="fas fa-save"></i> Save Hierarchy Settings
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- System Settings Section -->
+                            <div id="system-settings-tab" class="settings-tab-content">
+                                <div class="settings-card">
+                                    <h2><i class="fas fa-server"></i> System Settings</h2>
+                                    <p>Configure system-wide settings and preferences.</p>
+                                    
+                                    <div class="form-group">
+                                        <label for="default-approval-type">Default Approval Type:</label>
+                                        <select id="default-approval-type" class="form-control">
+                                            <option value="hierarchy">Hierarchical</option>
+                                            <option value="department">Department</option>
+                                            <option value="single">Single Approver</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label">Skip Middle Approver</label>
+                                        <div class="radio-group">
+                                            <label class="radio-container">
+                                                <input type="radio" name="skip-middle-approver" value="yes">
+                                                <span class="radio-checkmark"></span>
+                                                <span class="radio-label">Yes</span>
+                                            </label>
+                                            <label class="radio-container">
+                                                <input type="radio" name="skip-middle-approver" value="no" checked>
+                                                <span class="radio-checkmark"></span>
+                                                <span class="radio-label">No</span>
+                                            </label>
+                                        </div>
+                                        <p class="info-text">When enabled, invoices will skip level 2 approvers in hierarchical workflow</p>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <button class="btn btn-primary" id="save-system-settings-btn">
+                                            <i class="fas fa-save"></i> Save Settings
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Add Approver Modal -->
+        <div id="add-approver-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Add Approver</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Select Team Member</label>
+                        <select id="approver-select" class="form-control">
+                            <!-- Active team members will be loaded here -->
+                        </select>
+                    </div>
+                    <div id="approver-status" class="status-message"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline modal-close">Cancel</button>
+                    <button class="btn btn-primary" id="save-approver-btn">Add Approver</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // Global variables
+            let departmentApprovers = {
+                invoice: [],
+                po: [],
+                cfo: []
+            };
+            let approvalHierarchy = [];
+            let currentDepartment = null;
+            let activeUsers = [];
+            
+            // DOM elements
+            const saveApproverBtn = document.getElementById('save-approver-btn');
+            const backToAppBtn = document.getElementById('back-to-app-btn');
+            const saveHierarchyBtn = document.getElementById('save-hierarchy-btn');
+            const generateLevelsBtn = document.getElementById('generate-levels-btn');
+            const approvalLevelsInput = document.getElementById('approval-levels');
+            const hierarchyLevelsContainer = document.getElementById('hierarchy-levels-container');
+            const invoiceApproversList = document.getElementById('invoice-approvers-list');
+            const poApproversList = document.getElementById('po-approvers-list');
+            const cfoApproversList = document.getElementById('cfo-approvers-list');
+            const approverSelect = document.getElementById('approver-select');
+            const saveSystemSettingsBtn = document.getElementById('save-system-settings-btn');
+
+            // Initialize
+            document.addEventListener('DOMContentLoaded', function() {
+                setupEventListeners();
+                loadActiveUsers();
+                loadDepartmentApprovers();
+                loadApprovalHierarchy();
+                loadSystemSettings();
+                
+                // Tab functionality
+                document.querySelectorAll('.settings-tab').forEach(tab => {
+                    tab.addEventListener('click', function() {
+                        document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+                        document.querySelectorAll('.settings-tab-content').forEach(c => c.classList.remove('active'));
+                        
+                        this.classList.add('active');
+                        document.getElementById(`${this.dataset.tab}-tab`).classList.add('active');
+                    });
+                });
+            });
+
+            function setupEventListeners() {
+                // Back to app button
+                backToAppBtn.addEventListener('click', function() {
+                    window.location.href = 'index.html';
+                });
+
+                // Save approver button
+                saveApproverBtn.addEventListener('click', addDepartmentApprover);
+
+                // Save hierarchy button
+                saveHierarchyBtn.addEventListener('click', saveApprovalHierarchy);
+
+                // Generate levels button
+                generateLevelsBtn.addEventListener('click', generateHierarchyLevels);
+
+                // Add approver buttons
+                document.querySelectorAll('.add-approver-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        currentDepartment = this.dataset.department;
+                        loadUsersForApproverSelection();
+                        document.getElementById('add-approver-modal').style.display = 'flex';
+                    });
+                });
+
+                // Save system settings
+                saveSystemSettingsBtn.addEventListener('click', saveSystemSettings);
+
+                // Modal close buttons
+                document.querySelectorAll('.modal-close').forEach(btn => {
+                    btn.addEventListener('click', closeModal);
+                });
+            }
+
+            // Load users from server
+            async function loadActiveUsers() {
+                try {
+                    const response = await fetch('/api/users', {
+                        headers: {
+                            'Authorization': 'Bearer ' + sessionStorage.getItem('authToken')
+                        }
+                    });
+                    if (!response.ok) throw new Error('Failed to load users');
+                    
+                    const data = await response.json();
+                    if (data.data) {
+                        activeUsers = data.data;
+                    } else {
+                        throw new Error('Invalid data format received');
+                    }
+                } catch (error) {
+                    console.error('Error loading users:', error);
+                    showStatus('Error loading users: ' + error.message, 'error', document.getElementById('settings-section'));
+                }
+            }
+
+            // Load users for approver selection dropdown (only active users)
+            function loadUsersForApproverSelection() {
+                approverSelect.innerHTML = '';
+                
+                if (activeUsers.length === 0) {
+                    approverSelect.innerHTML = '<option value="">No users found</option>';
+                    return;
+                }
+                
+                // Filter users based on department and active status
+                let filteredUsers = [];
+                if (currentDepartment === 'invoice' || currentDepartment === 'po') {
+                    filteredUsers = activeUsers.filter(user => 
+                        (user.role === 'AP' || user.role === 'Manager') && user.is_active
+                    );
+                } else {
+                    filteredUsers = activeUsers.filter(user => 
+                        user.role === 'CFO' && user.is_active
+                    );
+                }
+                
+                if (filteredUsers.length === 0) {
+                    approverSelect.innerHTML = `<option value="">No ${currentDepartment === 'invoice' || currentDepartment === 'po' ? 'AP' : 'CFO'} members available</option>`;
+                    return;
+                }
+                
+                approverSelect.innerHTML = '<option value="">Select Team Member</option>';
+                filteredUsers.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = `${user.name} (${user.email})`;
+                    approverSelect.appendChild(option);
+                });
+            }
+
+            // Load department approvers from server
+            async function loadDepartmentApprovers() {
+                try {
+                    const response = await fetch('/api/department-approvers', {
+                        headers: {
+                            'Authorization': 'Bearer ' + sessionStorage.getItem('authToken')
+                        }
+                    });
+                    if (!response.ok) throw new Error('Failed to load approvers');
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        departmentApprovers = data.data;
+                        renderDepartmentApprovers();
+                    }
+                } catch (error) {
+                    console.error('Error loading department approvers:', error);
+                    showStatus('Error loading department approvers: ' + error.message, 'error', document.getElementById('department-approval-tab'));
+                }
+            }
+
+            // Load approval hierarchy from server
+            async function loadApprovalHierarchy() {
+                try {
+                    const response = await fetch('/api/approval-hierarchy', {
+                        headers: {
+                            'Authorization': 'Bearer ' + sessionStorage.getItem('authToken')
+                        }
+                    });
+                    if (!response.ok) throw new Error('Failed to load hierarchy');
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        approvalHierarchy = data.data;
+                        renderApprovalHierarchy();
+                    }
+                } catch (error) {
+                    console.error('Error loading approval hierarchy:', error);
+                    showStatus('Error loading approval hierarchy: ' + error.message, 'error', document.getElementById('hierarchy-approval-tab'));
+                }
+            }
+
+            // Load system settings
+            async function loadSystemSettings() {
+                try {
+                    const [hierarchyResponse, settingsResponse] = await Promise.all([
+                        fetch('/api/hierarchy-settings', {
+                            headers: {
+                                'Authorization': 'Bearer ' + sessionStorage.getItem('authToken')
+                            }
+                        }),
+                        fetch('/api/settings?type=default_approval_type', {
+                            headers: {
+                                'Authorization': 'Bearer ' + sessionStorage.getItem('authToken')
+                            }
+                        })
+                    ]);
+                    
+                    if (!hierarchyResponse.ok || !settingsResponse.ok) {
+                        throw new Error('Failed to load system settings');
+                    }
+                    
+                    const hierarchyData = await hierarchyResponse.json();
+                    const settingsData = await settingsResponse.json();
+                    
+                    if (hierarchyData.success) {
+                        const skipMiddle = hierarchyData.data?.skip_middle_approver;
+                        document.querySelector(`input[name="skip-middle-approver"][value="${skipMiddle ? 'yes' : 'no'}"]`).checked = true;
+                    }
+                    
+                    if (settingsData.success) {
+                        document.getElementById('default-approval-type').value = settingsData.data?.value || 'hierarchy';
+                    }
+                } catch (error) {
+                    console.error('Error loading system settings:', error);
+                    showStatus('Error loading system settings: ' + error.message, 'error', document.getElementById('system-settings-tab'));
+                }
+            }
+
+            // Render department approvers
+            function renderDepartmentApprovers() {
+                invoiceApproversList.innerHTML = '';
+                poApproversList.innerHTML = '';
+                cfoApproversList.innerHTML = '';
+                
+                // Invoice approvers
+                if (departmentApprovers.invoice.length === 0) {
+                    invoiceApproversList.innerHTML = '<p class="empty-state">No approvers configured for Invoice department</p>';
+                } else {
+                    departmentApprovers.invoice.forEach(approver => {
+                        const approverDiv = document.createElement('div');
+                        approverDiv.className = 'approver-item';
+                        approverDiv.innerHTML = `
+                            <span>${approver.name} (${approver.email})</span>
+                            <button class="btn-action delete-approver" data-department="invoice" data-id="${approver.id}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        `;
+                        invoiceApproversList.appendChild(approverDiv);
+                    });
+                }
+                
+                // PO approvers
+                if (departmentApprovers.po.length === 0) {
+                    poApproversList.innerHTML = '<p class="empty-state">No approvers configured for PO department</p>';
+                } else {
+                    departmentApprovers.po.forEach(approver => {
+                        const approverDiv = document.createElement('div');
+                        approverDiv.className = 'approver-item';
+                        approverDiv.innerHTML = `
+                            <span>${approver.name} (${approver.email})</span>
+                            <button class="btn-action delete-approver" data-department="po" data-id="${approver.id}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        `;
+                        poApproversList.appendChild(approverDiv);
+                    });
+                }
+                
+                // CFO approvers (only active CFO members)
+                const cfoMembers = activeUsers.filter(user => user.role === 'CFO' && user.is_active);
+                if (cfoMembers.length === 0) {
+                    cfoApproversList.innerHTML = '<p class="empty-state">No active CFO members found</p>';
+                } else {
+                    cfoMembers.forEach(user => {
+                        const approverDiv = document.createElement('div');
+                        approverDiv.className = 'approver-item';
+                        approverDiv.innerHTML = `
+                            <span>${user.name} (${user.email})</span>
+                        `;
+                        cfoApproversList.appendChild(approverDiv);
+                    });
+                }
+                
+                // Add delete event listeners
+                document.querySelectorAll('.delete-approver').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const department = this.dataset.department;
+                        const id = this.dataset.id;
+                        deleteDepartmentApprover(department, id);
+                    });
+                });
+            }
+
+            // Generate hierarchy levels based on user input
+            function generateHierarchyLevels() {
+                const levelsCount = parseInt(approvalLevelsInput.value) || 3;
+                hierarchyLevelsContainer.innerHTML = '';
+                
+                for (let i = 1; i <= levelsCount; i++) {
+                    const levelDiv = document.createElement('div');
+                    levelDiv.className = 'hierarchy-level';
+                    levelDiv.innerHTML = `
+                        <h4>Level ${i} Approval (AP Team)</h4>
+                        <div class="form-group">
+                            <label class="form-label">Select Approver</label>
+                            <select class="form-control hierarchy-approver-select" data-level="${i}">
+                                <option value="">Select AP Team Member</option>
+                                ${activeUsers
+                                    .filter(user => (user.role === 'AP' || user.role === 'Manager') && user.is_active)
+                                    .map(user => `<option value="${user.id}">${user.name} (${user.email})</option>`)
+                                    .join('')}
+                            </select>
+                        </div>
+                    `;
+                    hierarchyLevelsContainer.appendChild(levelDiv);
+                }
+                
+                // Add CFO level (fixed)
+                const cfoLevelDiv = document.createElement('div');
+                cfoLevelDiv.className = 'hierarchy-level cfo-level';
+                cfoLevelDiv.innerHTML = `
+                    <h4>Final Approval (CFO Team)</h4>
+                    <div class="form-group">
+                        <label class="form-label">Select CFO</label>
+                        <select class="form-control hierarchy-approver-select" data-level="${levelsCount + 1}">
+                            <option value="">Select CFO Team Member</option>
+                            ${activeUsers
+                                .filter(user => user.role === 'CFO' && user.is_active)
+                                .map(user => `<option value="${user.id}">${user.name} (${user.email})</option>`)
+                                .join('')}
+                        </select>
+                    </div>
+                `;
+                hierarchyLevelsContainer.appendChild(cfoLevelDiv);
+                
+                // Pre-select existing approvers if available
+                approvalHierarchy.forEach(item => {
+                    const select = document.querySelector(`.hierarchy-approver-select[data-level="${item.level}"]`);
+                    if (select) {
+                        select.value = item.approver_id;
+                    }
+                });
+            }
+
+            // Render approval hierarchy
+            function renderApprovalHierarchy() {
+                if (approvalHierarchy.length > 0) {
+                    const maxLevel = Math.max(...approvalHierarchy.map(item => item.level));
+                    approvalLevelsInput.value = maxLevel - 1; // Subtract 1 for CFO level
+                    generateHierarchyLevels();
+                }
+            }
+
+            // Add approver to department
+            async function addDepartmentApprover() {
+                const approverId = approverSelect.value;
+                
+                if (!approverId) {
+                    showStatus('Please select an approver', 'error', document.getElementById('approver-status'));
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/api/department-approvers', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + sessionStorage.getItem('authToken')
+                        },
+                        body: JSON.stringify({
+                            department: currentDepartment,
+                            approver_id: approverId
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to add approver');
+                    }
+                    
+                    closeModal();
+                    loadDepartmentApprovers();
+                    showStatus('Approver added successfully', 'success', document.getElementById(`${currentDepartment}-approvers-list`));
+                } catch (error) {
+                    showStatus(error.message, 'error', document.getElementById('approver-status'));
+                    console.error('Error adding approver:', error);
+                }
+            }
+
+            // Delete approver from department
+            async function deleteDepartmentApprover(department, id) {
+                if (!confirm('Are you sure you want to remove this approver?')) {
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/api/department-approvers/${department}/${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': 'Bearer ' + sessionStorage.getItem('authToken')
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to delete approver');
+                    }
+                    
+                    loadDepartmentApprovers();
+                    showStatus('Approver removed successfully', 'success', document.getElementById(`${department}-approvers-list`));
+                } catch (error) {
+                    showStatus(error.message, 'error', document.getElementById(`${department}-approvers-list`));
+                    console.error('Error deleting approver:', error);
+                }
+            }
+
+            // Save approval hierarchy
+            async function saveApprovalHierarchy() {
+                const approverSelects = document.querySelectorAll('.hierarchy-approver-select');
+                const levels = [];
+                let isValid = true;
+                
+                approverSelects.forEach(select => {
+                    if (!select.value) {
+                        isValid = false;
+                        select.classList.add('error');
+                    } else {
+                        select.classList.remove('error');
+                        levels.push(select.value);
+                    }
+                });
+                
+                if (!isValid) {
+                    showStatus('Please select approvers for all levels', 'error', document.getElementById('hierarchy-approval-tab'));
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/api/approval-hierarchy', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + sessionStorage.getItem('authToken')
+                        },
+                        body: JSON.stringify({ levels })
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to save hierarchy');
+                    }
+                    
+                    showStatus('Hierarchy saved successfully', 'success', document.getElementById('hierarchy-approval-tab'));
+                } catch (error) {
+                    showStatus(error.message, 'error', document.getElementById('hierarchy-approval-tab'));
+                    console.error('Error saving hierarchy:', error);
+                }
+            }
+
+            // Save system settings
+            async function saveSystemSettings() {
+                const defaultApprovalType = document.getElementById('default-approval-type').value;
+                const skipMiddleApprover = document.querySelector('input[name="skip-middle-approver"]:checked').value === 'yes';
+                
+                try {
+                    const [hierarchyResponse, settingsResponse] = await Promise.all([
+                        fetch('/api/hierarchy-settings', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + sessionStorage.getItem('authToken')
+                            },
+                            body: JSON.stringify({
+                                skip_middle_approver: skipMiddleApprover
+                            })
+                        }),
+                        fetch('/api/settings', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + sessionStorage.getItem('authToken')
+                            },
+                            body: JSON.stringify({
+                                setting_type: 'default_approval_type',
+                                setting_value: defaultApprovalType
+                            })
+                        })
+                    ]);
+                    
+                    if (!hierarchyResponse.ok || !settingsResponse.ok) {
+                        throw new Error('Failed to save some settings');
+                    }
+                    
+                    showStatus('System settings saved successfully', 'success', document.getElementById('system-settings-tab'));
+                } catch (error) {
+                    showStatus(error.message, 'error', document.getElementById('system-settings-tab'));
+                    console.error('Error saving system settings:', error);
+                }
+            }
+
+            // Close modal
+            function closeModal() {
+                document.getElementById('add-approver-modal').style.display = 'none';
+            }
+
+            // Show status message
+            function showStatus(message, type, element) {
+                const statusDiv = document.createElement('div');
+                statusDiv.className = `status-message ${type}`;
+                statusDiv.textContent = message;
+                
+                // Remove any existing status messages
+                const existingStatus = element.querySelector('.status-message');
+                if (existingStatus) {
+                    element.removeChild(existingStatus);
+                }
+                
+                element.appendChild(statusDiv);
+                
+                // Auto-hide success messages after 5 seconds
+                if (type === 'success') {
+                    setTimeout(() => {
+                        if (element.contains(statusDiv)) {
+                            element.removeChild(statusDiv);
+                        }
+                    }, 5000);
+                }
+            }
+        </script>
+    </div>
+</body>
+</html>

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Approval Portal - Invoice Processor</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="approval-container">
+        <!-- Login Section -->
+        <div id="login-section" class="approval-section">
+            <div class="approval-logo">
+                <i class="fas fa-file-invoice"></i>
+                <span>InvoicePro Approval</span>
+            </div>
+            
+            <div class="approval-card">
+                <h2>Approver Login</h2>
+                
+                <div class="form-group">
+                    <label for="login-email" class="form-label">Email</label>
+                    <input type="email" id="login-email" class="form-control" placeholder="Enter your email">
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password" class="form-label">Password</label>
+                    <input type="password" id="login-password" class="form-control" placeholder="Enter your password">
+                </div>
+                
+                <div id="login-status" class="status-message"></div>
+                
+                <div class="form-group">
+                    <button class="btn btn-primary" id="login-btn">Login</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Approval Dashboard Section -->
+        <div id="approval-dashboard" class="approval-section" style="display: none;">
+            <header class="approval-header">
+                <div class="header-title">
+                    <h1 id="approver-name">Approval Dashboard</h1>
+                    <p id="approver-department"></p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-outline" id="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </header>
+            
+            <div class="approval-content">
+                <div class="approval-tabs">
+                    <div class="approval-tab active" data-tab="pending">Pending Approval</div>
+                    <div class="approval-tab" data-tab="approved">Approved</div>
+                    <div class="approval-tab" data-tab="rejected">Rejected</div>
+                </div>
+                
+                <div class="approval-tab-content active" id="pending-tab">
+                    <div class="approval-list" id="pending-approvals">
+                        <!-- Pending approvals will be loaded here -->
+                    </div>
+                </div>
+                
+                <div class="approval-tab-content" id="approved-tab">
+                    <div class="approval-list" id="approved-approvals">
+                        <!-- Approved items will be loaded here -->
+                    </div>
+                </div>
+                
+                <div class="approval-tab-content" id="rejected-tab">
+                    <div class="approval-list" id="rejected-approvals">
+                        <!-- Rejected items will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Approval Action Modal -->
+        <div id="approval-action-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="approval-modal-title">Approve Document</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="approval-notes" class="form-label">Notes</label>
+                        <textarea id="approval-notes" class="form-control" rows="3" placeholder="Optional notes"></textarea>
+                    </div>
+                    <div id="approval-status" class="status-message"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline modal-close">Cancel</button>
+                    <button class="btn btn-danger" id="reject-btn">Reject</button>
+                    <button class="btn btn-warning" id="hold-btn">Hold</button>
+                    <button class="btn btn-success" id="approve-btn">Approve</button>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            let currentUser = null;
+            let currentDocument = null;
+            
+            document.addEventListener('DOMContentLoaded', function() {
+                // Check for existing token
+                const token = localStorage.getItem('authToken');
+                if (token) {
+                    validateToken(token);
+                }
+                
+                // Setup event listeners
+                document.getElementById('login-btn').addEventListener('click', login);
+                document.getElementById('logout-btn').addEventListener('click', logout);
+                
+                // Tab functionality
+                document.querySelectorAll('.approval-tab').forEach(tab => {
+                    tab.addEventListener('click', function() {
+                        document.querySelectorAll('.approval-tab').forEach(t => t.classList.remove('active'));
+                        document.querySelectorAll('.approval-tab-content').forEach(c => c.classList.remove('active'));
+                        
+                        this.classList.add('active');
+                        document.getElementById(`${this.dataset.tab}-tab`).classList.add('active');
+                        
+                        // Load appropriate data
+                        loadApprovals(this.dataset.tab);
+                    });
+                });
+                
+                // Modal close buttons
+                document.querySelectorAll('.modal-close').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        document.getElementById('approval-action-modal').style.display = 'none';
+                    });
+                });
+            });
+            
+            function validateToken(token) {
+                fetch('/api/validate-token', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        currentUser = data.user;
+                        showApprovalDashboard();
+                        loadApprovals('pending');
+                    } else {
+                        localStorage.removeItem('authToken');
+                    }
+                })
+                .catch(error => {
+                    localStorage.removeItem('authToken');
+                });
+            }
+            
+            function login() {
+                const email = document.getElementById('login-email').value.trim();
+                const password = document.getElementById('login-password').value;
+                
+                if (!email || !password) {
+                    showStatus('Email and password are required', 'error', document.getElementById('login-status'));
+                    return;
+                }
+                
+                fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        localStorage.setItem('authToken', data.token);
+                        currentUser = data.user;
+                        showApprovalDashboard();
+                        loadApprovals('pending');
+                    } else {
+                        showStatus('Invalid credentials', 'error', document.getElementById('login-status'));
+                    }
+                })
+                .catch(error => {
+                    showStatus('Login failed', 'error', document.getElementById('login-status'));
+                });
+            }
+            
+            function logout() {
+                localStorage.removeItem('authToken');
+                currentUser = null;
+                document.getElementById('login-section').style.display = 'flex';
+                document.getElementById('approval-dashboard').style.display = 'none';
+                document.getElementById('login-email').value = '';
+                document.getElementById('login-password').value = '';
+            }
+            
+            function showApprovalDashboard() {
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('approval-dashboard').style.display = 'block';
+                document.getElementById('approver-name').textContent = `${currentUser.name}'s Dashboard`;
+                document.getElementById('approver-department').textContent = `${currentUser.department} Team`;
+            }
+            
+            function loadApprovals(status) {
+                const containerId = `${status}-approvals`;
+                const container = document.getElementById(containerId);
+                container.innerHTML = '<div class="loading-spinner"></div>';
+                
+                fetch(`/api/approvals?status=${status}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderApprovals(data.data, containerId);
+                    } else {
+                        container.innerHTML = '<div class="empty-state">Error loading approvals</div>';
+                    }
+                })
+                .catch(error => {
+                    container.innerHTML = '<div class="empty-state">Error loading approvals</div>';
+                });
+            }
+            
+            function renderApprovals(approvals, containerId) {
+                const container = document.getElementById(containerId);
+                
+                if (approvals.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No documents found</div>';
+                    return;
+                }
+                
+                container.innerHTML = '';
+                
+                approvals.forEach(doc => {
+                    const docElement = document.createElement('div');
+                    docElement.className = 'approval-item';
+                    docElement.innerHTML = `
+                        <div class="approval-item-header">
+                            <span class="approval-doc-type">${doc.document_type}</span>
+                            <span class="approval-doc-number">${doc.invoice_number || doc.po_number}</span>
+                            <span class="approval-doc-amount">${doc.total_amount}</span>
+                        </div>
+                        <div class="approval-item-body">
+                            <div class="approval-vendor">${doc.vendor_info.split('\n')[0]}</div>
+                            <div class="approval-date">${new Date(doc.created_at).toLocaleDateString()}</div>
+                        </div>
+                        <div class="approval-item-actions">
+                            <button class="btn btn-outline view-doc-btn" data-id="${doc.id}">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            ${containerId === 'pending-approvals' ? `
+                            <button class="btn btn-primary approve-action-btn" data-id="${doc.id}">
+                                <i class="fas fa-check"></i> Take Action
+                            </button>
+                            ` : ''}
+                        </div>
+                    `;
+                    container.appendChild(docElement);
+                });
+                
+                // Add event listeners
+                document.querySelectorAll('.view-doc-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        viewDocument(this.dataset.id);
+                    });
+                });
+                
+                document.querySelectorAll('.approve-action-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        showApprovalModal(this.dataset.id);
+                    });
+                });
+            }
+            
+            function viewDocument(docId) {
+                // Implement document viewing functionality
+                alert(`View document ${docId}`);
+            }
+            
+            function showApprovalModal(docId) {
+                fetch(`/api/invoices/${docId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        currentDocument = data.data;
+                        document.getElementById('approval-modal-title').textContent = 
+                            `Review ${currentDocument.document_type}: ${currentDocument.invoice_number || currentDocument.po_number}`;
+                        document.getElementById('approval-notes').value = '';
+                        document.getElementById('approval-action-modal').style.display = 'flex';
+                        
+                        // Setup action buttons
+                        document.getElementById('approve-btn').onclick = function() { processApproval('approve'); };
+                        document.getElementById('reject-btn').onclick = function() { processApproval('reject'); };
+                        document.getElementById('hold-btn').onclick = function() { processApproval('hold'); };
+                    }
+                });
+            }
+            
+            function processApproval(action) {
+                const notes = document.getElementById('approval-notes').value;
+                
+                fetch(`/api/invoices/${currentDocument.id}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        status: action,
+                        notes: notes
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('approval-action-modal').style.display = 'none';
+                        loadApprovals('pending');
+                        showStatus(`Document ${action} successfully`, 'success', document.getElementById('approval-status'));
+                    } else {
+                        showStatus(`Error: ${data.error || 'Failed to process approval'}`, 'error', document.getElementById('approval-status'));
+                    }
+                })
+                .catch(error => {
+                    showStatus('Error processing approval', 'error', document.getElementById('approval-status'));
+                });
+            }
+            
+            function showStatus(message, type, element) {
+                const statusDiv = document.createElement('div');
+                statusDiv.className = `status-message ${type}`;
+                statusDiv.textContent = message;
+                
+                // Remove any existing status messages
+                const existingStatus = element.querySelector('.status-message');
+                if (existingStatus) {
+                    element.removeChild(existingStatus);
+                }
+                
+                element.appendChild(statusDiv);
+                
+                // Auto-hide success messages after 5 seconds
+                if (type === 'success') {
+                    setTimeout(() => {
+                        if (element.contains(statusDiv)) {
+                            element.removeChild(statusDiv);
+                        }
+                    }, 5000);
+                }
+            }
+        </script>
+    </div>
+</body>
+</html>
